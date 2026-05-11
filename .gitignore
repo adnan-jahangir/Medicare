@@ -1,0 +1,12 @@
+# Ignore node_modules in all subfolders
+node_modules/
+
+# Ignore environment variables (Keep your database secrets safe!)
+.env
+
+# Ignore build output directories
+dist/
+build/
+
+# Ignore OS generated files
+.DS_Store

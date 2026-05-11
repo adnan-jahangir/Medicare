@@ -1,0 +1,96 @@
+import { ReactNode } from 'react';
+import { NavLink, Link } from 'react-router-dom';
+import { Pill, LayoutDashboard, Package, Users, Building2, ShoppingBag, ShieldCheck, ChevronLeft, User as UserIcon, LogOut } from 'lucide-react';
+import { useAppStore } from '@/store/useAppStore';
+import type { Role } from '@/lib/types';
+
+interface Props { role: Role; children: ReactNode; title: string; subtitle?: string }
+
+const NAV: Record<Role, { label: string; to: string; icon: typeof Pill }[]> = {
+  customer: [
+    { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
+    { label: 'Medicines', to: '/medicines', icon: Pill },
+    { label: 'Orders', to: '/orders', icon: ShoppingBag },
+    { label: 'Prescription', to: '/prescription', icon: Package },
+    { label: 'Profile', to: '/update-profile', icon: UserIcon },
+  ],
+  owner: [
+    { label: 'Dashboard', to: '/owner', icon: LayoutDashboard },
+    { label: 'Medicines', to: '/owner/medicines', icon: Pill },
+    { label: 'Orders', to: '/owner/orders', icon: ShoppingBag },
+    { label: 'Profile', to: '/update-profile', icon: UserIcon },
+  ],
+  admin: [
+    { label: 'Overview', to: '/admin', icon: LayoutDashboard },
+    { label: 'Users', to: '/admin/users', icon: Users },
+    { label: 'Pharmacies', to: '/admin/pharmacies', icon: Building2 },
+    { label: 'Medicines', to: '/admin/medicines', icon: Pill },
+    { label: 'Orders', to: '/admin/orders', icon: Package },
+    { label: 'Profile', to: '/update-profile', icon: UserIcon },
+  ],
+};
+
+const ROLE_META: Record<Role, { name: string; icon: typeof Pill }> = {
+  owner: { name: 'Shop Owner', icon: LayoutDashboard },
+  admin: { name: 'Admin', icon: ShieldCheck },
+  customer: { name: 'Customer', icon: Pill },
+};
+
+export const DashboardLayout = ({ role, children, title, subtitle }: Props) => {
+  const items = NAV[role];
+  const meta = ROLE_META[role];
+  const { logout } = useAppStore();
+
+  return (
+    <div className="min-h-[calc(100vh-4rem)] grid md:grid-cols-[260px_1fr] bg-muted/30">
+      <aside className="hidden md:flex flex-col border-r border-border bg-card">
+        <div className="p-5 border-b border-border">
+          <Link to="/" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary mb-3">
+            <ChevronLeft className="h-3 w-3" /> Back to store
+          </Link>
+          <div className="flex items-center gap-2">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary">
+              <meta.icon className="h-4 w-4 text-primary-foreground" />
+            </span>
+            <div>
+              <div className="font-display font-bold text-sm leading-tight">{meta.name}</div>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Console</div>
+            </div>
+          </div>
+        </div>
+        <nav className="p-3 space-y-1 flex-1">
+          {items.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === '/dashboard' || item.to === '/owner' || item.to === '/admin'}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                  isActive ? 'bg-primary text-primary-foreground font-medium' : 'text-foreground/70 hover:bg-muted hover:text-foreground'
+                }`
+              }
+            >
+              <item.icon className="h-4 w-4" />
+              {item.label}
+            </NavLink>
+          ))}
+          <button
+            onClick={logout}
+            className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors text-red-500 hover:bg-red-500/10 font-medium mt-4"
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </button>
+        </nav>
+      </aside>
+
+      <div>
+        <div className="border-b border-border bg-card px-6 md:px-10 py-6">
+          <h1 className="font-display font-bold text-2xl">{title}</h1>
+          {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
+        </div>
+        <div className="p-6 md:p-10">{children}</div>
+      </div>
+    </div>
+  );
+};
