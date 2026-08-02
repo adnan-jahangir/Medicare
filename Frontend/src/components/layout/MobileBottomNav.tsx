@@ -9,7 +9,10 @@ export const MobileBottomNav = () => {
 
   const getProfilePath = () => {
     if (!user) return '/login';
-    return '/update-profile';
+    if (user.role === 'owner') return '/owner';
+    if (user.role === 'admin') return '/admin';
+    if (user.role === 'driver') return '/driver';
+    return '/dashboard';
   };
 
   return (

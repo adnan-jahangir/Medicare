@@ -91,9 +91,19 @@ export const DashboardLayout = ({ role, children, title, subtitle }: Props) => {
       </aside>
 
       <div>
-        <div className="border-b border-border bg-card px-6 md:px-10 py-6">
-          <h1 className="font-display font-bold text-2xl">{title}</h1>
-          {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
+        <div className="border-b border-border bg-card px-6 md:px-10 py-5 flex items-center justify-between">
+          <div>
+            <h1 className="font-display font-bold text-2xl">{title}</h1>
+            {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
+          </div>
+          {user && (
+            <Link to="/update-profile" className="flex items-center gap-2 p-1.5 pr-3.5 rounded-full border border-border/80 bg-muted/40 hover:bg-primary/10 hover:border-primary/40 transition-all shadow-sm">
+              <span className="grid h-8 w-8 place-items-center rounded-full bg-primary text-primary-foreground text-xs font-bold shadow-inner">
+                {user.name?.charAt(0) || 'U'}
+              </span>
+              <span className="hidden sm:inline text-xs font-bold text-foreground">My Profile</span>
+            </Link>
+          )}
         </div>
         <div className="p-6 md:p-10">{children}</div>
       </div>
