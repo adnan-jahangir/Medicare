@@ -1,0 +1,9 @@
+{
+  "appId": "com.medicare.app",
+  "appName": "MediCare",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}
