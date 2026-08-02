@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Header } from './Header';
 import { Footer } from './Footer';
+import { MobileBottomNav } from './MobileBottomNav';
 import { InstallAppBanner } from '../InstallAppBanner';
 import api from '@/lib/api';
 import { useAppStore } from '@/store/useAppStore';
@@ -23,10 +24,11 @@ export const RootLayout = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <InstallAppBanner />
       <Header />
-      <main className="flex-1">
+      <main className="flex-1 pb-16 md:pb-0">
         <Outlet />
       </main>
       <Footer />
+      <MobileBottomNav />
     </div>
   );
 };
