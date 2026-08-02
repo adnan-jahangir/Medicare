@@ -75,7 +75,8 @@ export default function OwnerOrders() {
     try {
       const { io } = require('socket.io-client');
       const token = localStorage.getItem('token');
-      socketRef.current = io('http://localhost:5001', {
+      const socketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, '') || 'https://medicare-rv55.onrender.com';
+      socketRef.current = io(socketUrl, {
         auth: { token },
         timeout: 3000,
         reconnectionAttempts: 3,

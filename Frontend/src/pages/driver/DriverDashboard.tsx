@@ -53,7 +53,8 @@ export default function DriverDashboard() {
   const connectSocket = () => {
     try {
       if (!token) return;
-      socketRef.current = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5001', {
+      const socketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, '') || 'https://medicare-rv55.onrender.com';
+      socketRef.current = io(socketUrl, {
         auth: { token: `Bearer ${token}` },
         query: { token },
         timeout: 3000,

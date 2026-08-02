@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-// Create an Axios instance
+// Create an Axios instance with live Render backend fallback
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5001/api', // Backend base URL
+  baseURL: import.meta.env.VITE_API_URL || 'https://medicare-rv55.onrender.com/api',
 });
 
 // Request interceptor to add the JWT token

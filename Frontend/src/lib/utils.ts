@@ -41,7 +41,7 @@ export function getMedicineImageUrl(medicine: any): string {
 
     // External URL: route through backend proxy to bypass CORS/hotlinking
     if (imgPath.startsWith("http")) {
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+      const apiBase = import.meta.env.VITE_API_URL || 'https://medicare-rv55.onrender.com/api';
       const name = encodeURIComponent(medicine.name || "");
       const brand = encodeURIComponent(medicine.brand || "");
       const category = encodeURIComponent(medicine.category || "");
