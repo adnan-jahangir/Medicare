@@ -161,11 +161,13 @@ export default function CustomerDashboardPage() {
                 </Link>
               </Button>
               <Button 
+                asChild
                 variant="outline" 
-                onClick={() => setProfileDialogOpen(true)}
                 className="rounded-xl h-12 justify-start sm:col-span-2 border-primary/40 text-primary hover:bg-primary/10 font-bold"
               >
-                <UserCheck className="mr-2 h-4 w-4" /> Edit Profile & Address
+                <Link to="/update-profile">
+                  <UserCheck className="mr-2 h-4 w-4" /> Edit Profile & Address
+                </Link>
               </Button>
             </div>
           </Card>

@@ -83,7 +83,7 @@ export const Header = () => {
 
           {user ? (
             <Button variant="ghost" size="sm" className="gap-2" asChild>
-              <Link to={user.role === 'owner' ? '/owner' : user.role === 'admin' ? '/admin' : user.role === 'driver' ? '/driver' : '/dashboard'}>
+              <Link to="/update-profile">
                 <span className="grid h-7 w-7 place-items-center rounded-full bg-primary/15 text-primary text-xs font-bold">
                   {user.name.charAt(0)}
                 </span>
