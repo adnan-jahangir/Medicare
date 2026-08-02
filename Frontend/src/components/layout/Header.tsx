@@ -85,9 +85,9 @@ export const Header = () => {
             <Button variant="ghost" size="sm" className="gap-2" asChild>
               <Link to="/update-profile">
                 <span className="grid h-7 w-7 place-items-center rounded-full bg-primary/15 text-primary text-xs font-bold">
-                  {user.name.charAt(0)}
+                  {(user.name || user.email || 'U').charAt(0).toUpperCase()}
                 </span>
-                <span className="hidden sm:inline text-sm">{user.name.split(' ')[0]}</span>
+                <span className="hidden sm:inline text-sm">{(user.name || user.email || 'User').split(' ')[0]}</span>
               </Link>
             </Button>
           ) : (
