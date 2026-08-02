@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/store/useAppStore';
 import { Button } from '@/components/ui/button';
@@ -30,8 +30,13 @@ export default function CheckoutPage() {
   const [customerCoords, setCustomerCoords] = useState<{ lat: number; lng: number }>({ lat: 22.3624, lng: 91.8023 });
   const nav = useNavigate();
 
+  useEffect(() => {
+    if (items.length === 0) {
+      nav('/cart');
+    }
+  }, [items.length, nav]);
+
   if (items.length === 0) {
-    nav('/cart');
     return null;
   }
 

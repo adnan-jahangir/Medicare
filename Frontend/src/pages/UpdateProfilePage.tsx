@@ -4,20 +4,43 @@ import { useAppStore } from '@/store/useAppStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import api from '@/lib/api';
 
 export default function UpdateProfilePage() {
-  const { user } = useAppStore();
+  const { user, updateUser } = useAppStore();
   const [name, setName] = useState(user?.name ?? '');
   const [email, setEmail] = useState(user?.email ?? '');
   const [phone, setPhone] = useState(user?.phoneNumber ?? '');
   const [password, setPassword] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const handleUpdate = (e: React.FormEvent) => {
+  const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate an update action (normally an API call)
-    toast.success('Profile updated successfully!');
-    // If you add a store action like "updateUser(data)", you could call it here.
+    try {
+      setSaving(true);
+      const payload: any = {
+        name,
+        email,
+        phoneNumber: phone,
+      };
+      if (password) {
+        payload.password = password;
+      }
+
+      const res = await api.patch('/users/profile', payload);
+
+      if (res.data.success) {
+        updateUser(res.data.data);
+        toast.success('Profile updated successfully!');
+        setPassword('');
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to update profile');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -51,7 +74,10 @@ export default function UpdateProfilePage() {
           </div>
 
           <div className="pt-4">
-            <Button type="submit">Save Changes</Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Save Changes
+            </Button>
           </div>
         </form>
       </section>

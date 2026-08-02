@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { useAppStore } from '@/store/useAppStore';
@@ -10,12 +10,30 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { EditProfileDialog } from '@/components/EditProfileDialog';
+import api from '@/lib/api';
 
 export default function CustomerDashboardPage() {
-  const { cart, wishlist, orders, user } = useAppStore();
+  const { cart, wishlist, orders: storeOrders, user } = useAppStore();
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
-  const activeOrders = orders.filter((order) => !['Delivered', 'Completed', 'Cancelled'].includes(order.status));
-  const latestOrder = orders[0];
+  const [fetchedOrders, setFetchedOrders] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const res = await api.get('/orders');
+        if (res.data.success && Array.isArray(res.data.data)) {
+          setFetchedOrders(res.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch dashboard orders:', err);
+      }
+    };
+    fetchOrders();
+  }, []);
+
+  const allOrders = fetchedOrders.length > 0 ? fetchedOrders : storeOrders;
+  const activeOrders = allOrders.filter((order: any) => !['Delivered', 'Completed', 'Cancelled'].includes(order.status));
+  const latestOrder = allOrders[0];
 
   const title = `Welcome back${user?.name ? `, ${user.name.split(' ')[0]}` : ''}!`;
   const subtitle = "Your medicine orders, prescription status, and live delivery updates";
@@ -169,7 +187,7 @@ export default function CustomerDashboardPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-xs text-muted-foreground">Order ID</div>
-                      <div className="font-display font-bold text-base">#{(latestOrder.id || '').slice(-6).toUpperCase()}</div>
+                      <div className="font-display font-bold text-base">#{((latestOrder.id || latestOrder._id) || '').slice(-6).toUpperCase()}</div>
                     </div>
                     <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-xs font-bold px-3 py-1">
                       {latestOrder.status}
@@ -191,7 +209,7 @@ export default function CustomerDashboardPage() {
 
             {latestOrder && (
               <Button asChild className="w-full mt-4 rounded-xl font-bold bg-primary hover:bg-primary/90">
-                <Link to={`/orders/${latestOrder.id}`}>
+                <Link to={`/orders/${latestOrder.id || latestOrder._id}`}>
                   <Truck className="mr-2 h-4 w-4" /> Track Live Order
                 </Link>
               </Button>

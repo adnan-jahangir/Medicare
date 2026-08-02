@@ -4,7 +4,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import type { Role } from '@/lib/types';
 
 const ROLES: { id: Role; label: string; path: string; icon: typeof User }[] = [
@@ -101,8 +101,11 @@ export const Header = () => {
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden"><Menu className="h-5 w-5" /></Button>
             </SheetTrigger>
-            <SheetContent>
-              <nav className="flex flex-col gap-4 mt-8">
+            <SheetContent side="right">
+              <SheetHeader>
+                <SheetTitle className="text-left font-display font-bold">Navigation</SheetTitle>
+              </SheetHeader>
+              <nav className="flex flex-col gap-4 mt-6">
                 {customerNav}
                 <div className="h-px bg-border my-2" />
                 {ROLES.map((r) => (

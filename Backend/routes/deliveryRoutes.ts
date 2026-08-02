@@ -82,7 +82,7 @@ router.post('/accept/:id', protect, authorize('driver'), async (req: AuthRequest
       { 
         _id: orderId, 
         status: 'Ready', 
-        driverId: { $exists: false } 
+        driverId: null 
       },
       { 
         $set: { 

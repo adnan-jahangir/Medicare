@@ -101,6 +101,7 @@ router.post("/register", async (req: Request, res: Response) => {
         success: true,
         message: "User registered successfully",
         data: {
+          id: user._id.toString(),
           _id: user._id,
           name: user.name,
           email: user.email,
@@ -149,6 +150,7 @@ router.post("/login", loginLimiter, async (req: Request, res: Response) => {
         success: true,
         message: "Admin login successful",
         data: {
+          id: adminUser._id.toString(),
           _id: adminUser._id,
           name: adminUser.name,
           email: adminUser.email,
@@ -195,6 +197,7 @@ router.post("/login", loginLimiter, async (req: Request, res: Response) => {
         success: true,
         message: "Owner login successful",
         data: {
+          id: ownerUser._id.toString(),
           _id: ownerUser._id,
           name: ownerUser.name,
           email: ownerUser.email,
@@ -249,6 +252,7 @@ router.post("/login", loginLimiter, async (req: Request, res: Response) => {
         success: true,
         message: "Login successful",
         data: {
+          id: user._id.toString(),
           _id: user._id,
           name: user.name,
           email: user.email,
@@ -321,6 +325,7 @@ router.post("/google", loginLimiter, async (req: Request, res: Response) => {
       success: true,
       message: "Google login successful",
       data: {
+        id: user._id.toString(),
         _id: user._id,
         name: user.name,
         email: user.email,

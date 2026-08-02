@@ -163,6 +163,42 @@ router.get('/', protect, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// @route   GET /api/orders/stats/overview
+// @desc    Get order statistics
+// @access  Private
+router.get('/stats/overview', protect, async (req: AuthRequest, res: Response) => {
+  try {
+    let query: any = {};
+    
+    if (req.user.role === 'customer') {
+      query.customerEmail = req.user.email;
+    } else if (['owner', 'pharmacy', 'vendor', 'shop_owner'].includes(req.user.role)) {
+      query.pharmacyId = req.user.shopCode;
+    }
+
+    const totalOrders = await Order.countDocuments(query);
+    const deliveredOrders = await Order.countDocuments({ ...query, status: 'Delivered' });
+    const pendingOrders = await Order.countDocuments({ ...query, status: { $in: ['Pending', 'Confirmed', 'Preparing', 'Ready'] } });
+    
+    const totalRevenue = await Order.aggregate([
+      { $match: query },
+      { $group: { _id: null, total: { $sum: '$total' } } }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        totalOrders,
+        deliveredOrders,
+        pendingOrders,
+        totalRevenue: totalRevenue[0]?.total || 0
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // @route   GET /api/orders/:id
 // @desc    Get order by ID
 // @access  Private
@@ -385,42 +421,6 @@ router.delete('/:id', protect, authorize('admin'), async (req: AuthRequest, res:
     res.json({
       success: true,
       message: 'Order deleted successfully'
-    });
-  } catch (error: any) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// @route   GET /api/orders/stats/overview
-// @desc    Get order statistics
-// @access  Private
-router.get('/stats/overview', protect, async (req: AuthRequest, res: Response) => {
-  try {
-    let query: any = {};
-    
-    if (req.user.role === 'customer') {
-      query.customerEmail = req.user.email;
-    } else if (['owner', 'pharmacy', 'vendor', 'shop_owner'].includes(req.user.role)) {
-      query.pharmacyId = req.user.shopCode;
-    }
-
-    const totalOrders = await Order.countDocuments(query);
-    const deliveredOrders = await Order.countDocuments({ ...query, status: 'Delivered' });
-    const pendingOrders = await Order.countDocuments({ ...query, status: { $in: ['Pending', 'Confirmed', 'Preparing', 'Ready'] } });
-    
-    const totalRevenue = await Order.aggregate([
-      { $match: query },
-      { $group: { _id: null, total: { $sum: '$total' } } }
-    ]);
-
-    res.json({
-      success: true,
-      data: {
-        totalOrders,
-        deliveredOrders,
-        pendingOrders,
-        totalRevenue: totalRevenue[0]?.total || 0
-      }
     });
   } catch (error: any) {
     res.status(500).json({ message: error.message });

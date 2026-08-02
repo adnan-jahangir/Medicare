@@ -61,7 +61,7 @@ export default function MedicinesPage() {
         </div>
       </div>
       <div>
-        <h4 className="font-display font-semibold text-sm mb-3 uppercase tracking-wider text-muted-foreground">Price up to ${maxPrice}</h4>
+        <h4 className="font-display font-semibold text-sm mb-3 uppercase tracking-wider text-muted-foreground">Price up to ৳{maxPrice}</h4>
         {/* স্লাইডারের ম্যাক্স ভ্যালু ২০০ করা হয়েছে */}
         <Slider value={[maxPrice]} onValueChange={(v) => setMaxPrice(v[0])} min={1} max={200} step={1} />
       </div>
