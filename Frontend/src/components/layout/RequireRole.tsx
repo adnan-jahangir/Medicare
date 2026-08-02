@@ -7,7 +7,7 @@ export const RequireRole = ({ children, role }: { children: ReactNode; role: Rol
   const { user } = useAppStore();
   const allowed = Array.isArray(role) ? role : [role];
   if (!user) return <Navigate to="/login" replace />;
-  if (!allowed.includes(user.role)) return <Navigate to="/" replace />;
+  if (!user?.role || !allowed.includes(user.role)) return <Navigate to="/" replace />;
   return <>{children}</>;
 };
 

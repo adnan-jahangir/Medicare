@@ -57,7 +57,7 @@ export const useAppStore = create<AppState>()(
       googleMapsKey: '',
 
       setRole: (role) => set({ role }),
-      setAuth: (user, token) => set({ user, token, role: user.role }),
+      setAuth: (user, token) => set({ user: user || null, token: token || null, role: user?.role || 'customer' }),
       updateUser: (updatedData) => set((s) => ({ user: s.user ? { ...s.user, ...updatedData } : null })),
       logout: () => set({ user: null, token: null, role: 'customer' }),
       setGoogleMapsKey: (googleMapsKey) => set({ googleMapsKey }),

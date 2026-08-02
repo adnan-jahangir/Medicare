@@ -101,13 +101,18 @@ export default function LoginPage() {
         res = await api.post('/auth/login', { email, password: pwd });
       }
 
-      const authData = res.data.data ?? res.data;
+      const authData = res.data?.data ?? res.data;
+      if (!authData || !authData.token) {
+        toast.error(res.data?.message || 'Authentication failed. Please check credentials.');
+        return;
+      }
       setAuth(authData, authData.token);
       toast.success(mode === 'login' ? 'Welcome back!' : 'Account created');
       
-      if (authData.role === 'admin') nav('/admin');
-      else if (authData.role === 'owner') nav('/owner');
-      else if (authData.role === 'driver') nav('/driver');
+      const targetRole = authData.role || 'customer';
+      if (targetRole === 'admin') nav('/admin');
+      else if (targetRole === 'owner') nav('/owner');
+      else if (targetRole === 'driver') nav('/driver');
       else nav('/dashboard');
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Authentication failed');
@@ -118,12 +123,17 @@ export default function LoginPage() {
     onSuccess: async (codeResponse) => {
       try {
         const res = await api.post('/auth/google', { token: codeResponse.access_token });
-        const authData = res.data.data ?? res.data;
+        const authData = res.data?.data ?? res.data;
+        if (!authData || !authData.token) {
+          toast.error('Google login failed on server');
+          return;
+        }
         setAuth(authData, authData.token);
         toast.success('Welcome back!');
-        if (authData.role === 'admin') nav('/admin');
-        else if (authData.role === 'owner') nav('/owner');
-        else if (authData.role === 'driver') nav('/driver');
+        const targetRole = authData.role || 'customer';
+        if (targetRole === 'admin') nav('/admin');
+        else if (targetRole === 'owner') nav('/owner');
+        else if (targetRole === 'driver') nav('/driver');
         else nav('/dashboard');
       } catch (error: any) {
         toast.error(error.response?.data?.message || 'Google Authentication failed');
