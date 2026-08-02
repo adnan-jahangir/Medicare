@@ -179,10 +179,29 @@ export default function LoginPage() {
 
                 <TabsContent value="login">
                   <h1 className="font-display font-bold text-3xl">Welcome back</h1>
-                  <p className="text-muted-foreground mt-1 mb-6">
+                  <p className="text-muted-foreground mt-1 mb-4">
                     Sign in to open your {PANEL_OPTIONS.find((option) => option.id === panel)?.label.toLowerCase()} dashboard. 
-                    <br/><span className="text-xs text-muted-foreground/80">Admins and Owners can log in from any section.</span>
                   </p>
+
+                  <div className="mb-4 p-3 rounded-xl bg-teal-500/10 border border-teal-500/20 text-xs text-teal-800 dark:text-teal-300 flex items-center justify-between">
+                    <div>
+                      <strong>Demo Account:</strong> testcustomer@example.com
+                    </div>
+                    <Button 
+                      type="button" 
+                      size="sm" 
+                      variant="outline" 
+                      className="h-7 text-[11px] px-2.5 bg-background border-teal-500/30"
+                      onClick={() => {
+                        setEmail('testcustomer@example.com');
+                        setPwd('password123');
+                        toast.info('Demo credentials filled! Tap "Sign in" to continue.');
+                      }}
+                    >
+                      Auto-fill Demo
+                    </Button>
+                  </div>
+
                   <form className="space-y-4" onSubmit={(e) => handleSubmit(e, 'login')}>
                     <div><Label htmlFor="le">Email or Phone Number</Label><Input id="le" type="text" required value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1.5" placeholder="Email or Phone Number" /></div>
                     <div><Label htmlFor="lp">Password</Label><Input id="lp" type="password" required value={pwd} onChange={(e) => setPwd(e.target.value)} className="mt-1.5" /></div>
