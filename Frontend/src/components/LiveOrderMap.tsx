@@ -43,16 +43,17 @@ import {
   Navigation,
 } from 'lucide-react';
 
-// Fix default Leaflet marker icon paths (Vite/Webpack bundler issue)
-import iconUrl from 'leaflet/dist/images/marker-icon.png';
-import iconShadow from 'leaflet/dist/images/marker-shadow.png';
-
-L.Marker.prototype.options.icon = L.icon({
-  iconUrl,
-  shadowUrl: iconShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
+// Fix default Leaflet marker icon paths cleanly using CDN fallbacks
+try {
+  delete (L.Icon.Default.prototype as any)._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  });
+} catch (e) {
+  console.warn('[LiveOrderMap] Leaflet icon init fallback', e);
+}
 
 // ─── Types ──────────────────────────────────────────────────────────────
 

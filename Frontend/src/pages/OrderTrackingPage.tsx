@@ -11,6 +11,8 @@ import { getMedicineImageUrl, handleMedicineImgError } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import type { Order } from '@/lib/types';
 
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+
 // Lazy-load the new LiveOrderMap (it pulls in Leaflet which is large)
 import { lazy, Suspense } from 'react';
 const LiveOrderMap = lazy(() =>
@@ -175,22 +177,24 @@ export default function OrderTrackingPage() {
           </div>
 
           {/* ── New LiveOrderMap — handles its own socket connection ── */}
-          <Suspense
-            fallback={
-              <div className="rounded-2xl border border-border bg-muted h-[420px] flex items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            }
-          >
-            <LiveOrderMap
-              orderId={order.id || (order as any)._id}
-              pharmacyLocation={pickupCoords}
-              deliveryLocation={deliveryCoords}
-              initialProgress={order.driverProgress || 0}
-              initialStatus={order.status}
-              className="h-[420px] w-full"
-            />
-          </Suspense>
+          <ErrorBoundary>
+            <Suspense
+              fallback={
+                <div className="rounded-2xl border border-border bg-muted h-[420px] flex items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              }
+            >
+              <LiveOrderMap
+                orderId={order.id || (order as any)._id}
+                pharmacyLocation={pickupCoords}
+                deliveryLocation={deliveryCoords}
+                initialProgress={order.driverProgress || 0}
+                initialStatus={order.status}
+                className="h-[420px] w-full"
+              />
+            </Suspense>
+          </ErrorBoundary>
 
           <p className="text-xs text-muted-foreground mt-2">
             {['Delivered', 'Completed'].includes(order.status)
@@ -218,7 +222,7 @@ export default function OrderTrackingPage() {
           )}
 
           {/* Driver Card */}
-          {order.driverId &&
+          {order.driverId && typeof order.driverId === 'object' &&
             ['Driver Assigned', 'Picked Up', 'On the Way', 'Arrived', 'Delivered', 'Completed'].includes(
               order.status
             ) && (
@@ -227,12 +231,12 @@ export default function OrderTrackingPage() {
                   <Avatar className="h-14 w-14 border-2 border-primary/10">
                     <AvatarImage src={order.driverId.profilePhoto} />
                     <AvatarFallback className="bg-primary/5 text-primary text-lg">
-                      {order.driverId.name?.charAt(0)}
+                      {(order.driverId.name || 'D').charAt(0)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
                     <h4 className="font-display font-bold text-lg leading-tight">
-                      {order.driverId.name}
+                      {order.driverId.name || 'Assigned Courier'}
                     </h4>
                     <div className="flex items-center gap-2 mt-1">
                       <div className="flex items-center gap-1 text-xs font-semibold text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full">
@@ -242,11 +246,13 @@ export default function OrderTrackingPage() {
                       <span className="text-muted-foreground text-xs">• Verified Courier</span>
                     </div>
                   </div>
-                  <Button asChild size="icon" className="rounded-full h-12 w-12 shadow-md">
-                    <a href={`tel:${order.driverId.phoneNumber}`}>
-                      <Phone className="h-5 w-5" />
-                    </a>
-                  </Button>
+                  {order.driverId.phoneNumber && (
+                    <Button asChild size="icon" className="rounded-full h-12 w-12 shadow-md">
+                      <a href={`tel:${order.driverId.phoneNumber}`}>
+                        <Phone className="h-5 w-5" />
+                      </a>
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
