@@ -1,10 +1,9 @@
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { ShoppingCart, Heart, Pill, LayoutDashboard, ShieldCheck, User, LogOut, Menu } from 'lucide-react';
+import { ShoppingCart, Heart, Pill, LayoutDashboard, ShieldCheck, User } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import type { Role } from '@/lib/types';
 
 const ROLES: { id: Role; label: string; path: string; icon: typeof User }[] = [
@@ -96,26 +95,6 @@ export const Header = () => {
               <Link to="/login">Sign in</Link>
             </Button>
           )}
-
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden"><Menu className="h-5 w-5" /></Button>
-            </SheetTrigger>
-            <SheetContent side="right">
-              <SheetHeader>
-                <SheetTitle className="text-left font-display font-bold">Navigation</SheetTitle>
-              </SheetHeader>
-              <nav className="flex flex-col gap-4 mt-6">
-                {customerNav}
-                <div className="h-px bg-border my-2" />
-                {ROLES.map((r) => (
-                  <Link key={r.id} to={r.path} className="flex items-center gap-2 text-sm">
-                    <r.icon className="h-4 w-4" /> {r.label}
-                  </Link>
-                ))}
-              </nav>
-            </SheetContent>
-          </Sheet>
         </div>
       </div>
     </header>
