@@ -57,7 +57,7 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 // @route   POST /api/pharmacies
 // @desc    Create a new pharmacy
 // @access  Private - 'admin' or 'owner'
-router.post('/', protect, authorize('admin', 'owner'), async (req: AuthRequest, res: Response) => {
+router.post('/', protect, authorize('admin', 'owner', 'pharmacy', 'vendor', 'shop_owner'), async (req: AuthRequest, res: Response) => {
   try {
     const { name, city, ownerName } = req.body;
 
@@ -88,7 +88,7 @@ router.post('/', protect, authorize('admin', 'owner'), async (req: AuthRequest, 
 // @route   PATCH /api/pharmacies/:id
 // @desc    Update pharmacy information
 // @access  Private - 'admin' or 'owner'
-router.patch('/:id', protect, authorize('admin', 'owner'), async (req: AuthRequest, res: Response) => {
+router.patch('/:id', protect, authorize('admin', 'owner', 'pharmacy', 'vendor', 'shop_owner'), async (req: AuthRequest, res: Response) => {
   try {
     const { name, city, rating, ownerName, monthlyRevenue } = req.body;
 

@@ -5,9 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { ShoppingCart, Heart, FileWarning, ChevronLeft, Plus, Minus } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { getMedicineImageUrl, handleMedicineImgError } from '@/lib/utils';
 
 export default function MedicineDetailPage() {
-  const { id } = useParams();
+  const id = useParams().id;
   const { medicines, addToCart, toggleWishlist, wishlist, pharmacies } = useAppStore();
   const m = medicines.find((x) => x.id === id);
   const [qty, setQty] = useState(1);
@@ -22,6 +23,9 @@ export default function MedicineDetailPage() {
 
   const pharmacy = pharmacies.find((p) => p.id === m.pharmacyId);
   const inWishlist = wishlist.includes(m.id);
+  
+  // ডাটাবেসের যেকোনো প্রিসক্রিপশন কী সেফলি রিড করার জন্য
+  const isRxRequired = m.requires_prescription || m.prescriptionRequired;
 
   return (
     <div className="container py-8">
@@ -30,8 +34,13 @@ export default function MedicineDetailPage() {
       </Link>
 
       <div className="grid md:grid-cols-2 gap-10">
-        <div className="rounded-3xl overflow-hidden bg-gradient-soft aspect-square">
-          <img src={m.image} alt={m.name} className="w-full h-full object-cover" />
+        <div className="rounded-3xl overflow-hidden bg-gradient-to-br from-muted/60 to-muted/30 aspect-square">
+          <img
+            src={getMedicineImageUrl(m)}
+            alt={m.name}
+            onError={(e) => handleMedicineImgError(e, m)}
+            className="w-full h-full object-contain p-6"
+          />
         </div>
 
         <div>
@@ -40,13 +49,15 @@ export default function MedicineDetailPage() {
           <p className="text-muted-foreground mt-1">{m.brand} · {m.strength}</p>
 
           <div className="flex items-baseline gap-3 mt-6">
-            <span className="font-display font-bold text-4xl">${m.price.toFixed(2)}</span>
+            <span className="font-display font-bold text-4xl">
+              <span className="text-[1.1em] mr-0.5">৳</span>{m.price.toFixed(2)}
+            </span>
             <span className={`text-sm font-medium ${m.stock === 0 ? 'text-destructive' : 'text-success'}`}>
               {m.stock === 0 ? 'Out of stock' : `${m.stock} in stock`}
             </span>
           </div>
 
-          {m.prescriptionRequired && (
+          {isRxRequired && (
             <div className="mt-5 p-3 rounded-xl border border-warning/30 bg-warning/10 flex items-start gap-2 text-sm">
               <FileWarning className="h-4 w-4 text-warning mt-0.5" />
               <div>
@@ -76,9 +87,14 @@ export default function MedicineDetailPage() {
 
           <div className="mt-8 flex items-center gap-3">
             <div className="flex items-center rounded-full border border-border">
-              <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setQty(Math.max(1, qty - 1))}><Minus className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setQty(Math.max(1, qty - 1))}>
+                <Minus className="h-4 w-4" />
+              </Button>
               <span className="w-10 text-center font-semibold">{qty}</span>
-              <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setQty(qty + 1)}><Plus className="h-4 w-4" /></Button>
+              {/* ম্যাক্সিমাম কোয়ান্টিটি স্টকের ভেতর লক করা হলো */}
+              <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setQty((p) => (m.stock && p < m.stock) ? p + 1 : p)}>
+                <Plus className="h-4 w-4" />
+              </Button>
             </div>
             <Button
               size="lg"

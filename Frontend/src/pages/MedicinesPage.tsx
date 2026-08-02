@@ -5,7 +5,6 @@ import { MedicineCard } from '@/components/MedicineCard';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from '@/components/ui/sheet';
@@ -17,7 +16,9 @@ export default function MedicinesPage() {
   const [params, setParams] = useSearchParams();
   const [q, setQ] = useState(params.get('q') || '');
   const [categories, setCategories] = useState<string[]>(params.get('cat') ? [params.get('cat')!] : []);
-  const [maxPrice, setMaxPrice] = useState(20);
+  
+  // ১. স্লাইডারের ডিফল্ট রেঞ্জ ২০ থেকে বাড়িয়ে ২০০ করা হলো
+  const [maxPrice, setMaxPrice] = useState(200);
   const [inStockOnly, setInStockOnly] = useState(false);
   const [noRxOnly, setNoRxOnly] = useState(false);
 
@@ -35,7 +36,11 @@ export default function MedicinesPage() {
       if (categories.length && !categories.includes(m.category)) return false;
       if (m.price > maxPrice) return false;
       if (inStockOnly && m.stock === 0) return false;
-      if (noRxOnly && m.prescriptionRequired) return false;
+      
+  
+      const rxRequired = m.requires_prescription || m.prescriptionRequired;
+      if (noRxOnly && rxRequired) return false;
+      
       return true;
     });
   }, [medicines, q, categories, maxPrice, inStockOnly, noRxOnly]);
@@ -57,7 +62,8 @@ export default function MedicinesPage() {
       </div>
       <div>
         <h4 className="font-display font-semibold text-sm mb-3 uppercase tracking-wider text-muted-foreground">Price up to ${maxPrice}</h4>
-        <Slider value={[maxPrice]} onValueChange={(v) => setMaxPrice(v[0])} min={1} max={20} step={1} />
+        {/* স্লাইডারের ম্যাক্স ভ্যালু ২০০ করা হয়েছে */}
+        <Slider value={[maxPrice]} onValueChange={(v) => setMaxPrice(v[0])} min={1} max={200} step={1} />
       </div>
       <div className="space-y-3">
         <label className="flex items-center gap-2 cursor-pointer">
@@ -69,8 +75,8 @@ export default function MedicinesPage() {
           <span className="text-sm">No prescription required</span>
         </label>
       </div>
-      {(categories.length || q || maxPrice < 20 || inStockOnly || noRxOnly) ? (
-        <Button variant="ghost" size="sm" onClick={() => { setCategories([]); setQ(''); setMaxPrice(20); setInStockOnly(false); setNoRxOnly(false); }}>
+      {(categories.length || q || maxPrice < 200 || inStockOnly || noRxOnly) ? (
+        <Button variant="ghost" size="sm" onClick={() => { setCategories([]); setQ(''); setMaxPrice(200); setInStockOnly(false); setNoRxOnly(false); }}>
           <X className="h-3 w-3 mr-1" /> Clear filters
         </Button>
       ) : null}

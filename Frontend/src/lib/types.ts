@@ -1,4 +1,4 @@
-export type Role = 'customer' | 'owner' | 'admin';
+export type Role = 'customer' | 'owner' | 'admin' | 'driver' | 'pharmacy' | 'vendor' | 'shop_owner';
 
 export type Category = 'Pain Relief' | 'Antibiotics' | 'Vitamins' | 'Cold & Flu' | 'Digestive' | 'Diabetes' | 'Heart' | 'Skin Care';
 
@@ -31,9 +31,14 @@ export interface CartItem {
   quantity: number;
 }
 
-export type OrderStatus = 'Pending' | 'Confirmed' | 'Preparing' | 'Ready' | 'Delivered';
+export type OrderStatus = 'Pending' | 'Confirmed' | 'Preparing' | 'Ready' | 'Driver Assigned' | 'Picked Up' | 'On the Way' | 'Arrived' | 'Delivered' | 'Completed' | 'Cancelled';
 
-export const ORDER_STAGES: OrderStatus[] = ['Pending', 'Confirmed', 'Preparing', 'Ready', 'Delivered'];
+// Full ordered lifecycle stages (excluding Cancelled which is a terminal side-state)
+export const ORDER_STAGES: OrderStatus[] = ['Pending', 'Confirmed', 'Preparing', 'Ready', 'Driver Assigned', 'Picked Up', 'On the Way', 'Arrived', 'Delivered', 'Completed'];
+
+// Pharmacy-manageable statuses (what a shop owner can set)
+export const PHARMACY_STAGES: OrderStatus[] = ['Confirmed', 'Preparing', 'Ready'];
+
 
 export interface Order {
   id: string;
@@ -48,9 +53,19 @@ export interface Order {
   // Map: NYC-ish demo coords. [lng, lat]
   pickup: [number, number];
   destination: [number, number];
+  deliveryAddress?: {
+    lat: number;
+    lng: number;
+  };
   // 0..1 progress along route
   driverProgress: number;
   prescriptionFile?: string;
+  driverId?: { 
+    name: string; 
+    phoneNumber?: string; 
+    profilePhoto?: string; 
+    rating?: number 
+  };
 }
 
 export interface User {
@@ -131,4 +146,9 @@ export interface User {
   // shopOwnerName?: string;
   // phoneNumber?: string;
   // shopLocation?: string;
+  role: Role;
+  shopCode?: string;
+  phoneNumber?: string;
+  profilePhoto?: string;
+  rating?: number;
 }

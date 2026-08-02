@@ -26,13 +26,20 @@ router.get('/profile', protect, async (req: AuthRequest, res: Response) => {
 // @access  Private
 router.patch('/profile', protect, async (req: AuthRequest, res: Response) => {
   try {
-    const { name, shopCode, shopName, shopLocation } = req.body;
+    const { name, phoneNumber, address, profilePhoto, vehicleType, licensePlate, nidNumber, zone, shopCode, shopName, shopLocation } = req.body;
 
     const updateData: any = {};
-    if (name) updateData.name = name;
-    if (shopCode) updateData.shopCode = shopCode;
-    if (shopName) updateData.shopName = shopName;
-    if (shopLocation) updateData.shopLocation = shopLocation;
+    if (name !== undefined) updateData.name = name;
+    if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
+    if (address !== undefined) updateData.address = address;
+    if (profilePhoto !== undefined) updateData.profilePhoto = profilePhoto;
+    if (vehicleType !== undefined) updateData.vehicleType = vehicleType;
+    if (licensePlate !== undefined) updateData.licensePlate = licensePlate;
+    if (nidNumber !== undefined) updateData.nidNumber = nidNumber;
+    if (zone !== undefined) updateData.zone = zone;
+    if (shopCode !== undefined) updateData.shopCode = shopCode;
+    if (shopName !== undefined) updateData.shopName = shopName;
+    if (shopLocation !== undefined) updateData.shopLocation = shopLocation;
 
     const updatedUser = await User.findByIdAndUpdate(
       req.user._id,

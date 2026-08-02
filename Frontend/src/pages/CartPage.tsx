@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useAppStore } from '@/store/useAppStore';
 import { Button } from '@/components/ui/button';
 import { Minus, Plus, Trash2, ShoppingBag, Pill, ArrowRight } from 'lucide-react';
+import { getMedicineImageUrl, handleMedicineImgError } from '@/lib/utils';
 
 export default function CartPage() {
   const { cart, medicines, updateCartQty, removeFromCart, clearCart } = useAppStore();
@@ -50,7 +51,12 @@ export default function CartPage() {
           {items.map((item) => (
             <div key={item.medicineId} className="grid grid-cols-[80px_1fr] sm:grid-cols-[1fr_120px_120px_100px_40px] gap-4 px-5 py-4 border-b border-dashed border-border last:border-b-0 items-center">
               <div className="flex items-center gap-3 col-span-2 sm:col-span-1">
-                <img src={item.medicine.image} alt={item.medicine.name} className="h-14 w-14 rounded-lg object-cover" />
+                <img
+                  src={getMedicineImageUrl(item.medicine)}
+                  alt={item.medicine.name}
+                  onError={(e) => handleMedicineImgError(e, item.medicine)}
+                  className="h-14 w-14 rounded-lg object-cover"
+                />
                 <div className="min-w-0">
                   <div className="font-display font-semibold truncate">{item.medicine.name}</div>
                   <div className="text-xs text-muted-foreground">{item.medicine.brand} · {item.medicine.strength}</div>
@@ -66,8 +72,8 @@ export default function CartPage() {
                 </div>
               </div>
 
-              <div className="text-right text-sm tabular-nums">${item.medicine.price.toFixed(2)}</div>
-              <div className="text-right font-display font-bold tabular-nums">${(item.medicine.price * item.quantity).toFixed(2)}</div>
+              <div className="text-right text-sm tabular-nums"><span className="text-[1.1em]">৳</span>{item.medicine.price.toFixed(2)}</div>
+              <div className="text-right font-display font-bold tabular-nums"><span className="text-[1.1em]">৳</span>{(item.medicine.price * item.quantity).toFixed(2)}</div>
               <button onClick={() => removeFromCart(item.medicineId)} className="text-muted-foreground hover:text-destructive justify-self-end">
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -80,12 +86,12 @@ export default function CartPage() {
           <div className="rounded-2xl border border-border bg-card p-6 shadow-card">
             <h3 className="font-display font-semibold mb-5">Order summary</h3>
             <dl className="space-y-3 text-sm">
-              <div className="flex justify-between"><dt className="text-muted-foreground">Subtotal</dt><dd className="tabular-nums">${subtotal.toFixed(2)}</dd></div>
-              <div className="flex justify-between"><dt className="text-muted-foreground">Delivery</dt><dd className="tabular-nums">{delivery === 0 ? <span className="text-success font-medium">Free</span> : `$${delivery.toFixed(2)}`}</dd></div>
-              <div className="flex justify-between"><dt className="text-muted-foreground">Tax (8%)</dt><dd className="tabular-nums">${tax.toFixed(2)}</dd></div>
+              <div className="flex justify-between"><dt className="text-muted-foreground">Subtotal</dt><dd className="tabular-nums"><span className="text-[1.1em]">৳</span>{subtotal.toFixed(2)}</dd></div>
+              <div className="flex justify-between"><dt className="text-muted-foreground">Delivery</dt><dd className="tabular-nums">{delivery === 0 ? <span className="text-success font-medium">Free</span> : <><span className="text-[1.1em]">৳</span>{delivery.toFixed(2)}</>}</dd></div>
+              <div className="flex justify-between"><dt className="text-muted-foreground">Tax (8%)</dt><dd className="tabular-nums"><span className="text-[1.1em]">৳</span>{tax.toFixed(2)}</dd></div>
               <div className="border-t border-dashed border-border pt-3 flex justify-between items-baseline">
                 <dt className="font-display font-semibold">Grand total</dt>
-                <dd className="font-display font-bold text-2xl tabular-nums">${total.toFixed(2)}</dd>
+                <dd className="font-display font-bold text-2xl tabular-nums"><span className="text-[1.1em]">৳</span>{total.toFixed(2)}</dd>
               </div>
             </dl>
             <Button asChild size="lg" className="w-full mt-6 rounded-full">
@@ -93,7 +99,7 @@ export default function CartPage() {
             </Button>
             {subtotal < 25 && (
               <p className="text-xs text-muted-foreground text-center mt-3">
-                Add ${(25 - subtotal).toFixed(2)} more for free delivery 🚚
+                Add <span className="text-[1.1em]">৳</span>{(25 - subtotal).toFixed(2)} more for free delivery 🚚
               </p>
             )}
           </div>

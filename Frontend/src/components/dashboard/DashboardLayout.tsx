@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Pill, LayoutDashboard, Package, Users, Building2, ShoppingBag, ShieldCheck, ChevronLeft, User as UserIcon, LogOut } from 'lucide-react';
+import { Pill, LayoutDashboard, Package, Users, Building2, ShoppingBag, ShieldCheck, ChevronLeft, User as UserIcon, LogOut, Truck } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import type { Role } from '@/lib/types';
 
@@ -23,9 +23,14 @@ const NAV: Record<Role, { label: string; to: string; icon: typeof Pill }[]> = {
   admin: [
     { label: 'Overview', to: '/admin', icon: LayoutDashboard },
     { label: 'Users', to: '/admin/users', icon: Users },
+    { label: 'Approvals', to: '/admin/drivers', icon: Truck },
     { label: 'Pharmacies', to: '/admin/pharmacies', icon: Building2 },
     { label: 'Medicines', to: '/admin/medicines', icon: Pill },
     { label: 'Orders', to: '/admin/orders', icon: Package },
+    { label: 'Profile', to: '/update-profile', icon: UserIcon },
+  ],
+  driver: [
+    { label: 'Dashboard', to: '/driver', icon: LayoutDashboard },
     { label: 'Profile', to: '/update-profile', icon: UserIcon },
   ],
 };
@@ -34,6 +39,7 @@ const ROLE_META: Record<Role, { name: string; icon: typeof Pill }> = {
   owner: { name: 'Shop Owner', icon: LayoutDashboard },
   admin: { name: 'Admin', icon: ShieldCheck },
   customer: { name: 'Customer', icon: Pill },
+  driver: { name: 'Delivery Agent', icon: Truck },
 };
 
 export const DashboardLayout = ({ role, children, title, subtitle }: Props) => {

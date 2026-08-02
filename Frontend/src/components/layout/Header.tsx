@@ -15,6 +15,8 @@ const ROLES: { id: Role; label: string; path: string; icon: typeof User }[] = [
 
 export const Header = () => {
   const { cart, wishlist, role, user, logout } = useAppStore();
+  const isDriver = user?.role === 'driver';
+  const isOwner = user?.role === 'owner';
   const cartCount = cart.reduce((s, c) => s + c.quantity, 0);
   const { pathname } = useLocation();
 
@@ -23,11 +25,18 @@ export const Header = () => {
   const customerNav = (
     <>
       <NavLink to="/" end className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? 'text-primary' : 'text-foreground/70'}`}>Home</NavLink>
-      <NavLink to="/medicines" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? 'text-primary' : 'text-foreground/70'}`}>Medicines</NavLink>
+      {!isDriver && (
+        <NavLink to="/medicines" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? 'text-primary' : 'text-foreground/70'}`}>Medicines</NavLink>
+      )}
       {user && user.role === 'customer' && (
         <NavLink to="/orders" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? 'text-primary' : 'text-foreground/70'}`}>My Orders</NavLink>
       )}
-      <NavLink to="/prescription" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? 'text-primary' : 'text-foreground/70'}`}>Upload Rx</NavLink>
+      {isDriver && (
+        <NavLink to="/driver" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? 'text-primary' : 'text-foreground/70'}`}>Dashboard</NavLink>
+      )}
+      {!isDriver && (
+        <NavLink to="/prescription" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? 'text-primary' : 'text-foreground/70'}`}>Upload Rx</NavLink>
+      )}
     </>
   );
 
@@ -55,23 +64,27 @@ export const Header = () => {
             </div>
           )}
 
-          <Link to="/wishlist" className="relative">
-            <Button variant="ghost" size="icon"><Heart className="h-5 w-5" /></Button>
-            {wishlist.length > 0 && (
-              <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-1 bg-accent text-accent-foreground">{wishlist.length}</Badge>
-            )}
-          </Link>
+          {!isDriver && (
+            <Link to="/wishlist" className="relative">
+              <Button variant="ghost" size="icon"><Heart className="h-5 w-5" /></Button>
+              {wishlist.length > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-1 bg-accent text-accent-foreground">{wishlist.length}</Badge>
+              )}
+            </Link>
+          )}
 
-          <Link to="/cart" className="relative">
-            <Button variant="ghost" size="icon"><ShoppingCart className="h-5 w-5" /></Button>
-            {cartCount > 0 && (
-              <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-1 bg-primary text-primary-foreground">{cartCount}</Badge>
-            )}
-          </Link>
+          {!isDriver && (
+            <Link to="/cart" className="relative">
+              <Button variant="ghost" size="icon"><ShoppingCart className="h-5 w-5" /></Button>
+              {cartCount > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-1 bg-primary text-primary-foreground">{cartCount}</Badge>
+              )}
+            </Link>
+          )}
 
           {user ? (
             <Button variant="ghost" size="sm" className="gap-2" asChild>
-              <Link to={user.role === 'owner' ? '/owner' : user.role === 'admin' ? '/admin' : '/dashboard'}>
+              <Link to={user.role === 'owner' ? '/owner' : user.role === 'admin' ? '/admin' : user.role === 'driver' ? '/driver' : '/dashboard'}>
                 <span className="grid h-7 w-7 place-items-center rounded-full bg-primary/15 text-primary text-xs font-bold">
                   {user.name.charAt(0)}
                 </span>

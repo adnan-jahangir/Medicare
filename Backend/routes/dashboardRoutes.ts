@@ -1,4 +1,5 @@
 import express, { Response } from 'express';
+import mongoose from 'mongoose';
 import { Order, Medicine, User, Pharmacy } from '../models.js';
 import { protect, authorize, AuthRequest } from '../middleware/auth.js';
 
@@ -60,30 +61,52 @@ router.get('/admin', protect, authorize('admin'), async (req: AuthRequest, res: 
 // @route   GET /api/dashboard/owner
 // @desc    Get owner dashboard stats
 // @access  Private - 'owner'
-router.get('/owner', protect, authorize('owner'), async (req: AuthRequest, res: Response) => {
+router.get('/owner', protect, authorize('owner', 'pharmacy', 'vendor', 'shop_owner'), async (req: AuthRequest, res: Response) => {
   try {
-    // Get pharmacy ID from user's shop code (adjust query as needed)
-    const pharmacyId = req.user.shopCode;
+    let rawPharmId = req.user.shopCode;
+    let pharmacy = null;
 
-    const totalMedicines = await Medicine.countDocuments({ pharmacyId });
-    const totalOrders = await Order.countDocuments({ pharmacyId });
-    const deliveredOrders = await Order.countDocuments({ pharmacyId, status: 'Delivered' });
+    if (rawPharmId && /^[0-9a-fA-F]{24}$/.test(rawPharmId)) {
+      pharmacy = await Pharmacy.findById(rawPharmId);
+    }
+
+    if (!pharmacy) {
+      pharmacy = await Pharmacy.findOne();
+      if (pharmacy) {
+        rawPharmId = pharmacy._id.toString();
+        // Update user shopCode in DB so future requests are linked
+        await User.findByIdAndUpdate(req.user._id, { 
+          $set: { shopCode: rawPharmId, shopName: pharmacy.name } 
+        });
+      }
+    }
+
+    const pharmIdStr = rawPharmId?.toString();
+    const pharmObjId = rawPharmId && /^[0-9a-fA-F]{24}$/.test(rawPharmId)
+      ? new mongoose.Types.ObjectId(rawPharmId)
+      : null;
+
+    const queryPharmId = pharmObjId ? { $in: [pharmObjId, pharmIdStr] } : pharmIdStr;
+
+    const totalMedicines = await Medicine.countDocuments({ pharmacyId: queryPharmId });
+    const totalOrders = await Order.countDocuments({ pharmacyId: queryPharmId });
+    const deliveredOrders = await Order.countDocuments({ pharmacyId: queryPharmId, status: 'Delivered' });
     const pendingOrders = await Order.countDocuments({ 
-      pharmacyId, 
+      pharmacyId: queryPharmId, 
       status: { $in: ['Pending', 'Confirmed', 'Preparing', 'Ready'] } 
     });
 
     const totalRevenue = await Order.aggregate([
-      { $match: { pharmacyId } },
+      { $match: { pharmacyId: queryPharmId, status: { $ne: 'Cancelled' } } },
       { $group: { _id: null, total: { $sum: '$total' } } }
     ]);
 
-    const recentOrders = await Order.find({ pharmacyId })
+    const recentOrders = await Order.find({ pharmacyId: queryPharmId })
       .sort({ createdAt: -1 })
       .limit(6);
 
     const lowStockMedicines = await Medicine.find({
-      pharmacyId,
+      pharmacyId: queryPharmId,
       stock: { $lt: 50 }
     }).sort({ stock: 1 });
 
@@ -160,14 +183,14 @@ router.get('/customer', protect, authorize('customer'), async (req: AuthRequest,
 // @route   GET /api/dashboard/analytics
 // @desc    Get analytics data
 // @access  Private - 'admin' or 'owner'
-router.get('/analytics', protect, authorize('admin', 'owner'), async (req: AuthRequest, res: Response) => {
+router.get('/analytics', protect, authorize('admin', 'owner', 'pharmacy', 'vendor', 'shop_owner'), async (req: AuthRequest, res: Response) => {
   try {
     const { days = 30 } = req.query;
     const daysAgo = new Date(Date.now() - parseInt(days as string) * 24 * 60 * 60 * 1000);
 
     let query: any = { createdAt: { $gte: daysAgo } };
     
-    if (req.user.role === 'owner') {
+    if (['owner', 'pharmacy', 'vendor', 'shop_owner'].includes(req.user.role)) {
       query.pharmacyId = req.user.shopCode;
     }
 

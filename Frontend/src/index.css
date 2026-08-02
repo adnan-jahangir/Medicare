@@ -144,4 +144,16 @@
   }
 }
 
-/* Map */
+/* Map — LiveOrderMap driver marker pulse */
+@keyframes driverPulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(16,185,129,0.25), 0 4px 12px rgba(16,185,129,0.35); }
+  50%      { box-shadow: 0 0 0 8px rgba(16,185,129,0.10), 0 4px 20px rgba(16,185,129,0.45); }
+}
+
+/* Hide Leaflet's default icon overrides for our custom divIcons */
+.live-order-pharmacy-icon,
+.live-order-home-icon,
+.live-order-driver-icon {
+  background: transparent !important;
+  border: none !important;
+}

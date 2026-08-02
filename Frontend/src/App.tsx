@@ -12,6 +12,8 @@ import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import OrdersPage from "./pages/OrdersPage";
 import OrderTrackingPage from "./pages/OrderTrackingPage";
+import PaymentSuccess from "./pages/payment/PaymentSuccess";
+import PaymentFail from "./pages/payment/PaymentFail";
 import LoginPage from "./pages/LoginPage";
 import PrescriptionPage from "./pages/PrescriptionPage";
 import WishlistPage from "./pages/WishlistPage";
@@ -23,7 +25,9 @@ import OwnerDashboard from "./pages/owner/OwnerDashboard";
 import OwnerMedicines from "./pages/owner/OwnerMedicines";
 import OwnerOrders from "./pages/owner/OwnerOrders";
 
-import AdminOverview, { AdminUsers, AdminPharmacies, AdminMedicines, AdminOrders } from "./pages/admin/AdminPages";
+import DriverDashboard from "./pages/driver/DriverDashboard";
+
+import AdminOverview, { AdminUsers, AdminDrivers, AdminPharmacies, AdminMedicines, AdminOrders } from "./pages/admin/AdminPages";
 
 import NotFound from "./pages/NotFound.tsx";
 import UpdateProfilePage from "./pages/UpdateProfilePage";
@@ -46,19 +50,24 @@ const App = () => (
             <Route path="/checkout" element={<RequireRole role="customer"><CheckoutPage /></RequireRole>} />
             <Route path="/orders" element={<RequireAuth><OrdersPage /></RequireAuth>} />
             <Route path="/orders/:id" element={<RequireAuth><OrderTrackingPage /></RequireAuth>} />
+            <Route path="/payment/success" element={<RequireAuth><PaymentSuccess /></RequireAuth>} />
+            <Route path="/payment/fail" element={<RequireAuth><PaymentFail /></RequireAuth>} />
             <Route path="/wishlist" element={<WishlistPage />} />
             <Route path="/prescription" element={<RequireAuth><PrescriptionPage /></RequireAuth>} />
             <Route path="/update-profile" element={<RequireAuth><UpdateProfilePage /></RequireAuth>} />
 
-            <Route path="/owner" element={<OwnerDashboard />} />
-            <Route path="/owner/medicines" element={<OwnerMedicines />} />
-            <Route path="/owner/orders" element={<OwnerOrders />} />
+            <Route path="/owner" element={<RequireRole role={["owner", "pharmacy", "vendor", "shop_owner"]}><OwnerDashboard /></RequireRole>} />
+            <Route path="/owner/medicines" element={<RequireRole role={["owner", "pharmacy", "vendor", "shop_owner"]}><OwnerMedicines /></RequireRole>} />
+            <Route path="/owner/orders" element={<RequireRole role={["owner", "pharmacy", "vendor", "shop_owner"]}><OwnerOrders /></RequireRole>} />
 
-            <Route path="/admin" element={<AdminOverview />} />
-            <Route path="/admin/users" element={<AdminUsers />} />
-            <Route path="/admin/pharmacies" element={<AdminPharmacies />} />
-            <Route path="/admin/medicines" element={<AdminMedicines />} />
-            <Route path="/admin/orders" element={<AdminOrders />} />
+            <Route path="/driver" element={<RequireRole role="driver"><DriverDashboard /></RequireRole>} />
+
+            <Route path="/admin" element={<RequireRole role="admin"><AdminOverview /></RequireRole>} />
+            <Route path="/admin/users" element={<RequireRole role="admin"><AdminUsers /></RequireRole>} />
+            <Route path="/admin/drivers" element={<RequireRole role="admin"><AdminDrivers /></RequireRole>} />
+            <Route path="/admin/pharmacies" element={<RequireRole role="admin"><AdminPharmacies /></RequireRole>} />
+            <Route path="/admin/medicines" element={<RequireRole role="admin"><AdminMedicines /></RequireRole>} />
+            <Route path="/admin/orders" element={<RequireRole role="admin"><AdminOrders /></RequireRole>} />
           </Route>
 
           <Route path="/login" element={<LoginPage />} />

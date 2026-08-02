@@ -1,208 +1,323 @@
 import { useEffect, useRef, useState } from 'react';
-import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { useAppStore } from '@/store/useAppStore';
-import { MapPin, KeyRound } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import { MapPin, Loader2 } from 'lucide-react';
+
+// Fix for default Leaflet icon not appearing correctly in some environments
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+
+let DefaultIcon = L.icon({
+    iconUrl: icon,
+    shadowUrl: iconShadow,
+    iconSize: [25, 41],
+    iconAnchor: [12, 41]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
 
 interface Props {
-  pickup: [number, number]; // [lng, lat]
-  destination: [number, number]; // [lng, lat]
-  progress: number; // 0..1
+  orderId: string;
+  pickup: any;        // Could be [lng, lat], {lat, lng}, or contain strings
+  destination: any;   // Same flexibility
+  deliveryAddress?: any;
+  progress: number;   // 0..1
+  driverLocation?: [number, number] | null;
+  routeCoords?: [number, number][];
 }
 
-// Medical Mint inspired light map style
-const MAP_STYLE: google.maps.MapTypeStyle[] = [
-  { elementType: 'geometry', stylers: [{ color: '#f3faf6' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#1f4d3a' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#ffffff' }] },
-  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#dbece2' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#cdebdf' }] },
-  { featureType: 'landscape.natural', stylers: [{ color: '#e8f5ed' }] },
-];
+const CHITTAGONG_FALLBACK: [number, number] = [22.3568, 91.7832];
 
-export const LiveDeliveryMap = ({ pickup, destination, progress }: Props) => {
-  const { googleMapsKey, setGoogleMapsKey } = useAppStore();
-  const [tempKey, setTempKey] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const driverMarkerRef = useRef<google.maps.Marker | null>(null);
-  const routeRef = useRef<google.maps.LatLngLiteral[]>([]);
+// ─── Coordinate Helpers ──────────────────────────────────────────────
 
-  // pickup/destination come in as [lng, lat]
-  const pickupLatLng: google.maps.LatLngLiteral = { lat: pickup[1], lng: pickup[0] };
-  const destLatLng: google.maps.LatLngLiteral = { lat: destination[1], lng: destination[0] };
+/** Safely coerce any value to a finite number, returning 0 on failure */
+const toNum = (v: any): number => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
+/** Parse any coordinate shape into a [lat, lng] tuple with Number() coercion */
+const getCoords = (coord: any): [number, number] => {
+  if (Array.isArray(coord)) {
+    // Convention: arrays are [lng, lat] (GeoJSON / Mongo style)
+    return [toNum(coord[1]), toNum(coord[0])];
+  }
+  if (coord && typeof coord === 'object') {
+    return [toNum(coord.lat), toNum(coord.lng)];
+  }
+  return [0, 0];
+};
+
+/** Check if a [lat, lng] pair represents a real location (not 0,0 placeholder) */
+const isValidCoord = (c: [number, number]): boolean => {
+  return c[0] !== 0 || c[1] !== 0;
+};
+
+// ─── Map Child Components ────────────────────────────────────────────
+
+/** Smoothly animates the driver marker from its current position to a new target */
+const SmoothDriverMarker = ({ targetPos }: { targetPos: [number, number] }) => {
+  const [currentPos, setCurrentPos] = useState<[number, number]>(targetPos);
+  const animationRef = useRef<NodeJS.Timeout | null>(null);
+  const startPosRef = useRef<[number, number]>(targetPos);
+  const startTimeRef = useRef<number>(0);
+  const duration = 3000;
 
   useEffect(() => {
-    if (!googleMapsKey || !mapContainer.current || mapRef.current) return;
+    startPosRef.current = currentPos;
+    startTimeRef.current = Date.now();
 
-    setOptions({ key: googleMapsKey, v: 'weekly' });
+    if (animationRef.current) clearInterval(animationRef.current);
 
-    let cancelled = false;
+    animationRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTimeRef.current;
+      const t = Math.min(elapsed / duration, 1);
 
-    (async () => {
-      try {
-        const [{ Map, Polyline }, { Marker }, { DirectionsService, TravelMode }, { LatLngBounds, SymbolPath }] = await Promise.all([
-          importLibrary('maps'),
-          importLibrary('marker'),
-          importLibrary('routes'),
-          importLibrary('core'),
-        ]);
+      const lat = startPosRef.current[0] + (targetPos[0] - startPosRef.current[0]) * t;
+      const lng = startPosRef.current[1] + (targetPos[1] - startPosRef.current[1]) * t;
 
-        if (cancelled || !mapContainer.current) return;
+      setCurrentPos([lat, lng]);
 
-        const map = new Map(mapContainer.current, {
-          center: pickupLatLng,
-          zoom: 13,
-          disableDefaultUI: true,
-          zoomControl: true,
-          styles: MAP_STYLE,
-          backgroundColor: '#f3faf6',
-        });
-        mapRef.current = map;
-
-        // Pickup marker (pharmacy)
-        new Marker({
-          position: pickupLatLng,
-          map,
-          title: 'Pharmacy',
-          icon: {
-            path: SymbolPath.CIRCLE,
-            scale: 9,
-            fillColor: '#0d9488',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 3,
-          },
-        });
-        // Destination marker
-        new Marker({
-          position: destLatLng,
-          map,
-          title: 'Delivery address',
-          icon: {
-            path: SymbolPath.CIRCLE,
-            scale: 9,
-            fillColor: '#14532d',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 3,
-          },
-        });
-
-        // Get route via Directions API
-        let coords: google.maps.LatLngLiteral[] = [pickupLatLng, destLatLng];
-        try {
-          const directions = new DirectionsService();
-          const result = await directions.route({
-            origin: pickupLatLng,
-            destination: destLatLng,
-            travelMode: TravelMode.DRIVING,
-          });
-          const path = result.routes?.[0]?.overview_path;
-          if (path && path.length > 1) coords = path.map((p) => ({ lat: p.lat(), lng: p.lng() }));
-        } catch (e) {
-          console.warn('Google Directions failed', e);
-        }
-        routeRef.current = coords;
-
-        // Glow + main route line
-        new Polyline({
-          path: coords,
-          map,
-          strokeColor: '#10b981',
-          strokeOpacity: 0.2,
-          strokeWeight: 12,
-        });
-        new Polyline({
-          path: coords,
-          map,
-          strokeColor: '#10b981',
-          strokeOpacity: 1,
-          strokeWeight: 4,
-        });
-
-        // Fit bounds
-        const bounds = new LatLngBounds();
-        coords.forEach((c) => bounds.extend(c));
-        map.fitBounds(bounds, 60);
-
-        // Driver marker (animated)
-        const startIdx = Math.min(coords.length - 1, Math.max(0, Math.floor(progress * (coords.length - 1))));
-        driverMarkerRef.current = new Marker({
-          position: coords[startIdx],
-          map,
-          title: 'Courier',
-          icon: {
-            path: SymbolPath.CIRCLE,
-            scale: 12,
-            fillColor: '#10b981',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 4,
-          },
-          zIndex: 999,
-        });
-      } catch (e) {
-        console.error(e);
-        setError('Failed to load Google Maps. Check that your API key is valid and has Maps JavaScript API + Directions API enabled.');
+      if (t >= 1) {
+        if (animationRef.current) clearInterval(animationRef.current);
       }
-    })();
+    }, 50);
 
     return () => {
-      cancelled = true;
-      driverMarkerRef.current?.setMap(null);
-      driverMarkerRef.current = null;
-      mapRef.current = null;
+      if (animationRef.current) clearInterval(animationRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [googleMapsKey, pickup[0], pickup[1], destination[0], destination[1]]);
+  }, [targetPos]);
 
-  // Update driver position when progress changes
+  const driverIcon = L.divIcon({
+    className: 'custom-driver-icon',
+    html: `<div style="background-color: #10b981; width: 24px; height: 24px; border-radius: 50%; border: 4px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12]
+  });
+
+  if (!isValidCoord(currentPos)) return null;
+
+  return <Marker position={currentPos} icon={driverIcon} />;
+};
+
+/** Auto-fits map bounds to keep driver and destination visible */
+const MapAutoBounds = ({ driverPos, destPos }: { driverPos: [number, number]; destPos: [number, number] }) => {
+  const map = useMap();
+
   useEffect(() => {
-    const coords = routeRef.current;
-    if (!driverMarkerRef.current || coords.length === 0) return;
-    const idx = Math.min(coords.length - 1, Math.max(0, Math.floor(progress * (coords.length - 1))));
-    driverMarkerRef.current.setPosition(coords[idx]);
-  }, [progress]);
+    if (!isValidCoord(driverPos) || !isValidCoord(destPos)) return;
 
-  if (!googleMapsKey) {
-    return (
-      <div className="rounded-2xl border border-dashed border-border p-8 text-center bg-gradient-soft">
-        <div className="grid h-12 w-12 mx-auto place-items-center rounded-full bg-primary/15 text-primary mb-3">
-          <KeyRound className="h-5 w-5" />
-        </div>
-        <h4 className="font-display font-semibold mb-1">Add your Google Maps API key</h4>
-        <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
-          Get a key in <a href="https://console.cloud.google.com/google/maps-apis/credentials" target="_blank" rel="noreferrer" className="text-primary underline">Google Cloud Console</a>.
-          Enable <strong>Maps JavaScript API</strong> and <strong>Directions API</strong>, and restrict it to your domain.
-        </p>
-        <div className="flex gap-2 max-w-md mx-auto">
-          <Input placeholder="AIzaSy..." value={tempKey} onChange={(e) => setTempKey(e.target.value)} />
-          <Button onClick={() => setGoogleMapsKey(tempKey.trim())} disabled={!tempKey.trim()}>Save</Button>
-        </div>
-      </div>
-    );
-  }
+    const driverLatLng = L.latLng(driverPos[0], driverPos[1]);
+    const destLatLngObj = L.latLng(destPos[0], destPos[1]);
+    const distanceMeter = driverLatLng.distanceTo(destLatLngObj);
+
+    if (distanceMeter > 200) {
+      map.fitBounds([driverLatLng, destLatLngObj], {
+        padding: [80, 80],
+        animate: true
+      });
+    }
+  }, [driverPos, destPos, map]);
+
+  return null;
+};
+
+/**
+ * Re-centers the map when coordinates load/change after the initial mount.
+ * MapContainer only reads `center` on first render, so we need this to
+ * handle the async data-loading case.
+ */
+const MapRecenter = ({ center, zoom }: { center: [number, number]; zoom?: number }) => {
+  const map = useMap();
+  const lastCenterRef = useRef<string>('');
+
+  useEffect(() => {
+    if (!isValidCoord(center)) return;
+
+    const centerStr = JSON.stringify(center);
+    if (lastCenterRef.current !== centerStr) {
+      map.setView(center, zoom ?? map.getZoom(), { animate: true });
+      lastCenterRef.current = centerStr;
+    }
+  }, [center, zoom, map]);
+
+  return null;
+};
+
+// ─── Main Component ──────────────────────────────────────────────────
+
+export const LiveDeliveryMap = ({ orderId, pickup, destination, deliveryAddress, progress, driverLocation, routeCoords }: Props) => {
+
+  const pickupLatLng = getCoords(pickup);
+  const rawDest = getCoords(deliveryAddress);
+  const destLatLng = isValidCoord(rawDest) ? rawDest : getCoords(destination);
+
+  const pickupValid = isValidCoord(pickupLatLng);
+  const destValid = isValidCoord(destLatLng);
+
+  const [internalDriverPos, setInternalDriverPos] = useState<[number, number]>(pickupLatLng);
+  const [currentRoute, setCurrentRoute] = useState<[number, number][]>([]);
+  const [driverTrail, setDriverTrail] = useState<[number, number][]>([]);
+
+  // Update internal state when the pickup prop changes (async load)
+  useEffect(() => {
+    if (pickupValid) {
+      setInternalDriverPos(prev => {
+        // Only reset if we're still at [0,0]
+        if (!isValidCoord(prev)) return pickupLatLng;
+        return prev;
+      });
+    }
+  }, [pickupLatLng[0], pickupLatLng[1], pickupValid]);
+
+  // Fetch real road route from OSRM
+  useEffect(() => {
+    if (!pickupValid || !destValid) return;
+
+    const fetchRoute = async () => {
+      // OSRM wants lng,lat order
+      const p_lng = pickupLatLng[1];
+      const p_lat = pickupLatLng[0];
+      const d_lng = destLatLng[1];
+      const d_lat = destLatLng[0];
+
+      if (!p_lng || !p_lat || !d_lng || !d_lat) return;
+
+      try {
+        const url = `https://router.project-osrm.org/route/v1/driving/${p_lng},${p_lat};${d_lng},${d_lat}?overview=full&geometries=geojson`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.routes && data.routes.length > 0) {
+          const coords: [number, number][] = data.routes[0].geometry.coordinates.map(
+            (c: any) => [toNum(c[1]), toNum(c[0])]
+          );
+          setCurrentRoute(coords);
+        }
+      } catch (err) {
+        console.error("OSRM Fetch Error:", err);
+      }
+    };
+    fetchRoute();
+  }, [pickupLatLng[0], pickupLatLng[1], destLatLng[0], destLatLng[1], pickupValid, destValid]);
+
+  // React to live driver location updates
+  useEffect(() => {
+    if (driverLocation) {
+      const safeDriverLoc: [number, number] = [toNum(driverLocation[0]), toNum(driverLocation[1])];
+      setInternalDriverPos(safeDriverLoc);
+
+      setDriverTrail(prev => {
+        const newTrail = [...prev, safeDriverLoc];
+        if (newTrail.length > 20) return newTrail.slice(newTrail.length - 20);
+        return newTrail;
+      });
+
+      if (routeCoords && routeCoords.length > 0) {
+        let minDist = Infinity;
+        let closestIdx = 0;
+
+        routeCoords.forEach((coord, idx) => {
+          const d = Math.pow(toNum(coord[0]) - safeDriverLoc[0], 2) +
+                    Math.pow(toNum(coord[1]) - safeDriverLoc[1], 2);
+          if (d < minDist) {
+            minDist = d;
+            closestIdx = idx;
+          }
+        });
+
+        setCurrentRoute(routeCoords.slice(closestIdx));
+      }
+    } else if (pickupValid && destValid) {
+      const lat = pickupLatLng[0] + (destLatLng[0] - pickupLatLng[0]) * progress;
+      const lng = pickupLatLng[1] + (destLatLng[1] - pickupLatLng[1]) * progress;
+      setInternalDriverPos([lat, lng]);
+    }
+  }, [driverLocation, progress, routeCoords, pickupLatLng[0], pickupLatLng[1], destLatLng[0], destLatLng[1], pickupValid, destValid]);
+
+  // Custom icons
+  const pharmacyIcon = L.divIcon({
+    className: 'pharmacy-icon',
+    html: `<div style="background-color: #0d9488; width: 18px; height: 18px; border-radius: 50%; border: 3px solid white;"></div>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 9]
+  });
+
+  const homeIcon = L.divIcon({
+    className: 'home-icon',
+    html: `<div style="background-color: #14532d; width: 18px; height: 18px; border-radius: 50%; border: 3px solid white;"></div>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 9]
+  });
+
+  // Determine the best initial center for the map
+  const initialCenter: [number, number] = destValid
+    ? destLatLng
+    : pickupValid
+      ? pickupLatLng
+      : CHITTAGONG_FALLBACK;
 
   return (
-    <div className="relative rounded-2xl overflow-hidden border border-border shadow-card">
-      <div ref={mapContainer} className="h-[420px] w-full bg-secondary" />
-      <div className="absolute top-3 left-3 pill bg-card/90 backdrop-blur shadow-sm">
+    <div className="relative rounded-2xl overflow-hidden border border-border shadow-card h-[420px] w-full">
+      <MapContainer
+        center={initialCenter}
+        zoom={13}
+        style={{ height: '100%', width: '100%' }}
+        zoomControl={true}
+        className="z-0"
+      >
+        {/* Re-center the map when coordinates load after mount */}
+        <MapRecenter center={destValid ? destLatLng : (pickupValid ? pickupLatLng : CHITTAGONG_FALLBACK)} zoom={14} />
+
+        {/* Auto-fit bounds when driver is moving */}
+        {isValidCoord(internalDriverPos) && destValid && (
+          <MapAutoBounds driverPos={internalDriverPos} destPos={destLatLng} />
+        )}
+
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+        />
+
+        {/* Driver Trail (Recent History) */}
+        {driverTrail.length > 1 && (
+          <Polyline
+            positions={driverTrail}
+            color="#10b981"
+            weight={3}
+            opacity={0.4}
+            dashArray="1, 5"
+          />
+        )}
+
+        {/* Route Line */}
+        {currentRoute.length > 0 ? (
+          <Polyline positions={currentRoute} color="#10b981" weight={5} opacity={0.8} />
+        ) : (pickupValid && destValid) ? (
+          <Polyline positions={[pickupLatLng, destLatLng]} color="#10b981" weight={4} opacity={0.6} dashArray="10, 10" />
+        ) : null}
+
+        {/* Pickup Marker — only render when valid */}
+        {pickupValid && (
+          <Marker position={pickupLatLng} icon={pharmacyIcon} />
+        )}
+
+        {/* Destination Marker — only render when valid */}
+        {destValid && (
+          <Marker position={destLatLng} icon={homeIcon} />
+        )}
+
+        {/* Driver Marker — only render when valid */}
+        {isValidCoord(internalDriverPos) && (
+          <SmoothDriverMarker targetPos={internalDriverPos} />
+        )}
+
+      </MapContainer>
+
+      <div className="absolute top-3 left-3 pill bg-card/90 backdrop-blur shadow-sm z-[1000]">
         <MapPin className="h-3 w-3 text-primary" />
-        <span>Live tracking</span>
+        <span className="text-xs font-semibold ml-1">Live tracking</span>
         <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse-soft ml-1" />
       </div>
-      {error && (
-        <div className="absolute inset-x-3 bottom-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-xs p-3">
-          {error}{' '}
-          <button className="underline ml-1" onClick={() => { setGoogleMapsKey(''); setError(null); }}>Reset key</button>
-        </div>
-      )}
     </div>
   );
 };

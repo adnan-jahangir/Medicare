@@ -19,6 +19,7 @@ interface AppState {
 
   setRole: (r: Role) => void;
   setAuth: (user: User, token: string) => void;
+  updateUser: (updatedData: Partial<User>) => void;
   logout: () => void;
   setGoogleMapsKey: (t: string) => void;
 
@@ -57,6 +58,7 @@ export const useAppStore = create<AppState>()(
 
       setRole: (role) => set({ role }),
       setAuth: (user, token) => set({ user, token, role: user.role }),
+      updateUser: (updatedData) => set((s) => ({ user: s.user ? { ...s.user, ...updatedData } : null })),
       logout: () => set({ user: null, token: null, role: 'customer' }),
       setGoogleMapsKey: (googleMapsKey) => set({ googleMapsKey }),
 
@@ -91,7 +93,7 @@ export const useAppStore = create<AppState>()(
       placeOrder: (customerName, customerEmail) => {
         const { cart, medicines } = get();
         if (cart.length === 0) return null;
-        const items = cart.map((c) => ({ medicine: medicines.find((m) => m.id === c.medicineId)!, quantity: c.quantity }));
+        const items = cart.map((c) => ({ medicine: medicines.find((m) => m.id === c.medicineId)!, quantity: c.quantity })).filter(i => i.medicine);
         const total = items.reduce((sum, it) => sum + it.medicine.price * it.quantity, 0);
         const order: Order = {
           id: 'ORD-' + (1000 + Math.floor(Math.random() * 9000)),

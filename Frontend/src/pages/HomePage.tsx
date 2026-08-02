@@ -7,6 +7,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { MedicineCard } from '@/components/MedicineCard';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getMedicineImageUrl, handleMedicineImgError } from '@/lib/utils';
 
 const CATS = ['Pain Relief', 'Antibiotics', 'Vitamins', 'Cold & Flu', 'Digestive', 'Diabetes', 'Heart', 'Skin Care'];
 
@@ -72,10 +73,10 @@ export default function HomePage() {
                   transition={{ delay: 0.2 + i * 0.1 }}
                   className={`rounded-2xl overflow-hidden border border-border/60 bg-card shadow-card ${i % 2 === 0 ? 'translate-y-4' : '-translate-y-2'}`}
                 >
-                  <img src={m.image} alt={m.name} className="aspect-square w-full object-cover" />
+                  <img src={getMedicineImageUrl(m)} alt={m.name} onError={(e) => handleMedicineImgError(e, m)} className="aspect-square w-full object-cover" />
                   <div className="p-3">
                     <div className="font-display font-semibold text-sm">{m.name}</div>
-                    <div className="text-xs text-muted-foreground">{m.strength} · ${m.price.toFixed(2)}</div>
+                    <div className="text-xs text-muted-foreground">{m.strength} · <span className="text-[1.1em]">৳</span>{m.price.toFixed(2)}</div>
                   </div>
                 </motion.div>
               ))}
@@ -87,7 +88,7 @@ export default function HomePage() {
       {/* Trust bar */}
       <section className="container py-12 grid sm:grid-cols-3 gap-4">
         {[
-          { icon: Truck, title: 'Free delivery', desc: 'On orders over $25' },
+          { icon: Truck, title: 'Free delivery', desc: <>On orders over <span className="text-[1.1em]">৳</span>25</> },
           { icon: ShieldCheck, title: 'Verified medicines', desc: 'Sourced from licensed pharmacies' },
           { icon: Clock, title: 'Live tracking', desc: 'See your delivery on the map' },
         ].map((f) => (

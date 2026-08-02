@@ -1,5 +1,5 @@
 import express, { Response } from "express";
-import { Medicine } from "../models.js";
+import { Medicine, Pharmacy } from "../models.js";
 import { protect, authorize, AuthRequest } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -20,7 +20,12 @@ router.get("/", async (req: AuthRequest, res: Response) => {
     } = req.query;
     let query: any = {};
 
-    if (pharmacyId) query.pharmacyId = pharmacyId;
+    if (pharmacyId) {
+      const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(pharmacyId as string);
+      if (isValidObjectId) {
+        query.pharmacyId = pharmacyId;
+      }
+    }
     if (category) query.category = category;
     if (prescriptionOnly) query.prescriptionRequired = true;
     if (minPrice || maxPrice) {
@@ -91,7 +96,7 @@ router.get("/:id", async (req: AuthRequest, res: Response) => {
 router.post(
   "/",
   protect,
-  authorize("owner", "admin"),
+  authorize("owner", "admin", "pharmacy", "vendor", "shop_owner"),
   async (req: AuthRequest, res: Response) => {
     try {
       const {
@@ -148,13 +153,82 @@ router.post(
   },
 );
 
+// @route   POST /api/medicines/bulk
+// @desc    Bulk add medicines (array).
+// @access  Private - 'owner' or 'admin'
+router.post(
+  "/bulk",
+  protect,
+  authorize("owner", "admin", "pharmacy", "vendor", "shop_owner"),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const payload = req.body;
+
+      if (!Array.isArray(payload) || payload.length === 0) {
+        return res.status(400).json({ message: "Expected a non-empty array" });
+      }
+
+      // Determine pharmacy: accept query param pharmacyId or fallback to Central Pharmacy
+      let pharmacyId = req.query.pharmacyId as string | undefined;
+      let pharmacy;
+      if (pharmacyId) {
+        pharmacy = await Pharmacy.findById(pharmacyId);
+      } else {
+        pharmacy = await Pharmacy.findOne({ name: "MedeCare Pharmacy" });
+        if (!pharmacy) {
+          pharmacy = await Pharmacy.create({ name: "MedeCare Pharmacy", city: "Chittagong", rating: 4.8 });
+        }
+        pharmacyId = pharmacy._id.toString();
+      }
+
+      const inserted: any[] = [];
+      const skipped: any[] = [];
+
+      for (const item of payload) {
+        const name = item.medicineName || item.name;
+        if (!name || !item.price) {
+          skipped.push({ item, reason: "missing name or price" });
+          continue;
+        }
+
+        const exists = await Medicine.findOne({ name, pharmacyId });
+        if (exists) {
+          skipped.push({ name, reason: "already exists" });
+          continue;
+        }
+
+        const med = new Medicine({
+          pharmacyId,
+          name,
+          brand: item.brandName || item.brand,
+          strength: item.strength,
+          dosage: item.dosage,
+          description: item.description,
+          category: item.category,
+          price: Number(item.price),
+          stock: item.stock || 100,
+          image: item.imageUrl || item.image,
+          prescriptionRequired: typeof item.prescriptionRequired === 'boolean' ? item.prescriptionRequired : ['Antibiotics','Diabetes','Heart'].includes(item.category),
+        });
+
+        await med.save();
+        inserted.push(med);
+      }
+
+      res.status(201).json({ success: true, insertedCount: inserted.length, skippedCount: skipped.length, skipped, inserted });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  },
+);
+
 // @route   PATCH /api/medicines/:id
 // @desc    Update a medicine (price, stock, etc.)
 // @access  Private - 'owner' or 'admin'
 router.patch(
   "/:id",
   protect,
-  authorize("owner", "admin"),
+  authorize("owner", "admin", "pharmacy", "vendor", "shop_owner"),
   async (req: AuthRequest, res: Response) => {
     try {
       const medicine = await Medicine.findById(req.params.id);
@@ -188,7 +262,7 @@ router.patch(
 router.delete(
   "/:id",
   protect,
-  authorize("owner", "admin"),
+  authorize("owner", "admin", "pharmacy", "vendor", "shop_owner"),
   async (req: AuthRequest, res: Response) => {
     try {
       const medicine = await Medicine.findById(req.params.id);

@@ -1,0 +1,1 @@
+const m = require("mongoose"); m.connect("mongodb://localhost:27017/medecare").then(() => m.connection.db.collection("users").updateOne({ email: "c233116@ugrad.iiuc.ac.bd" }, { $set: { role: "owner" } }).then(r => { console.log("Success:", r); process.exit(0); })).catch(e => { console.error(e); process.exit(1); })
