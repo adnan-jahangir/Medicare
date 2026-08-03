@@ -210,7 +210,7 @@ export function AdminUsers() {
 
   return (
     <DashboardLayout role="admin" title="Users" subtitle="Manage all platform users">
-      <div className="rounded-2xl border border-border bg-card overflow-hidden">
+      <div className="rounded-2xl border border-border bg-card overflow-x-auto shadow-sm">
         {loading ? <div className="p-4 text-sm text-muted-foreground">Loading users...</div> : users.map((u) => (
           <div key={u._id || u.id} className="grid grid-cols-[1fr_120px_100px_60px] gap-4 items-center px-5 py-3 border-b border-border last:border-b-0 hover:bg-muted/40">
             <div className="flex items-center gap-3 min-w-0">
@@ -306,10 +306,10 @@ export function AdminMedicines() {
 
   return (
     <DashboardLayout role="admin" title="All medicines" subtitle="Across all pharmacies">
-      <div className="rounded-2xl border border-border bg-card overflow-hidden">
+      <div className="rounded-2xl border border-border bg-card overflow-x-auto shadow-sm">
         {loading ? <div className="p-4 text-sm text-muted-foreground">Loading medicines...</div> : medicines.map((m) => {
           return (
-            <div key={m._id || m.id} className="grid grid-cols-[1fr_140px_100px_80px_60px] gap-4 items-center px-5 py-3 border-b border-border last:border-b-0 hover:bg-muted/40">
+            <div key={m._id || m.id} className="grid grid-cols-[1fr_140px_100px_80px_60px] gap-4 items-center px-5 py-3 border-b border-border last:border-b-0 hover:bg-muted/40 min-w-[500px]">
               <div className="flex items-center gap-3 min-w-0">
                 <img src={getMedicineImageUrl(m)} alt={m.name} onError={(e) => handleMedicineImgError(e, m)} className="h-10 w-10 rounded-lg object-cover flex-shrink-0" />
                 <div className="min-w-0"><div className="font-display font-semibold truncate">{m.name}</div><div className="text-xs text-muted-foreground truncate">{m.strength}</div></div>
@@ -348,7 +348,7 @@ export function AdminOrders() {
 
   return (
     <DashboardLayout role="admin" title="All orders" subtitle="Platform-wide order log">
-      <div className="rounded-2xl border border-border bg-card overflow-hidden">
+      <div className="rounded-2xl border border-border bg-card overflow-x-auto shadow-sm">
         {loading ? <div className="p-4 text-sm text-muted-foreground">Loading orders...</div> : orders.map((o) => {
           return (
             <div key={o._id || o.id} className="grid grid-cols-[1fr_140px_120px_100px] gap-4 items-center px-5 py-3 border-b border-border last:border-b-0 hover:bg-muted/40">

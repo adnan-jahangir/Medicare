@@ -50,7 +50,7 @@ export const DashboardLayout = ({ role, children, title, subtitle }: Props) => {
   const { logout, user } = useAppStore();
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] grid md:grid-cols-[260px_1fr] bg-muted/30">
+    <div className="min-h-[calc(100vh-4rem)] grid md:grid-cols-[260px_1fr] bg-muted/30 max-w-full overflow-x-hidden">
       <aside className="hidden md:flex flex-col border-r border-border bg-card">
         <div className="p-5 border-b border-border">
           <Link to="/" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary mb-3">
@@ -92,11 +92,11 @@ export const DashboardLayout = ({ role, children, title, subtitle }: Props) => {
         </nav>
       </aside>
 
-      <div>
-        <div className="border-b border-border bg-card px-6 md:px-10 py-5 flex items-center justify-between">
+      <div className="min-w-0 max-w-full overflow-x-hidden">
+        <div className="border-b border-border bg-card px-4 md:px-10 py-4 flex items-center justify-between">
           <div>
-            <h1 className="font-display font-bold text-2xl">{title}</h1>
-            {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
+            <h1 className="font-display font-bold text-xl md:text-2xl">{title}</h1>
+            {subtitle && <p className="text-xs md:text-sm text-muted-foreground mt-1">{subtitle}</p>}
           </div>
           {user && (
             <DropdownMenu>
@@ -125,7 +125,7 @@ export const DashboardLayout = ({ role, children, title, subtitle }: Props) => {
             </DropdownMenu>
           )}
         </div>
-        <div className="p-6 md:p-10">{children}</div>
+        <div className="p-4 sm:p-6 md:p-10 min-w-0 max-w-full overflow-x-hidden">{children}</div>
       </div>
     </div>
   );
