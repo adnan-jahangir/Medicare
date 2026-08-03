@@ -190,7 +190,8 @@ export function AdminUsers() {
         const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
         setUsers(list);
       } catch (error) {
-        toast.error("Failed to fetch users");
+        console.warn("Failed to fetch users", error);
+        setUsers([]);
       } finally {
         setLoading(false);
       }
@@ -326,7 +327,8 @@ export function AdminPharmacies() {
           setPharmacies(res.data.data);
         }
       } catch (error) {
-        toast.error("Failed to fetch pharmacies");
+        console.warn("Failed to fetch pharmacies", error);
+        setPharmacies([]);
       } finally {
         setLoading(false);
       }
@@ -378,7 +380,8 @@ export function AdminMedicines() {
         const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
         setMedicines(list);
       } catch (error) {
-        toast.error("Failed to fetch medicines");
+        console.warn("Failed to fetch medicines", error);
+        setMedicines([]);
       } finally {
         setLoading(false);
       }
@@ -495,7 +498,8 @@ export function AdminOrders() {
         const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
         setOrders(list);
       } catch (error) {
-        toast.error("Failed to fetch orders");
+        console.warn("Failed to fetch orders", error);
+        setOrders([]);
       } finally {
         setLoading(false);
       }
@@ -601,7 +605,8 @@ export function AdminDrivers() {
       const list = Array.isArray(res.data) ? res.data : (res.data?.data || []);
       setDrivers(list);
     } catch (err) {
-      toast.error('Failed to load pending drivers');
+      console.warn('Failed to load pending drivers', err);
+      setDrivers([]);
     } finally {
       setLoading(false);
     }
