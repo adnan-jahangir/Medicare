@@ -94,13 +94,10 @@ export const Header = () => {
           )}
 
           {user ? (
-            <Button variant="ghost" size="sm" className="gap-2 px-2 hover:bg-primary/10" asChild>
-              <Link to={user.role === 'owner' ? '/owner' : user.role === 'admin' ? '/admin' : user.role === 'driver' ? '/driver' : '/dashboard'}>
-                <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-primary text-xs font-bold ring-2 ring-primary/20">
+            <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10" asChild>
+              <Link to={user.role === 'owner' ? '/owner' : user.role === 'admin' ? '/admin' : user.role === 'driver' ? '/driver' : '/dashboard'} title="Go to Dashboard">
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-primary/15 text-primary text-sm font-bold ring-2 ring-primary/20">
                   {userInitial}
-                </span>
-                <span className="hidden md:inline-block font-medium text-sm max-w-[120px] truncate">
-                  {userDisplayName}
                 </span>
               </Link>
             </Button>
