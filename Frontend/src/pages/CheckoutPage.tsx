@@ -86,84 +86,67 @@ export default function CheckoutPage() {
         status: 'Pending'
       };
 
-      // 2. Create order in Backend database
-      const response = await api.post('/orders', orderPayload);
-
-      if (response.data.success) {
-        const createdOrder = response.data.data;
-        const orderId = createdOrder._id || createdOrder.id;
-
-        if (method === 'cod') {
-          // Cash on Delivery - Complete immediately
+      if (method === 'cod') {
+        // Cash on Delivery - Create order in DB immediately
+        const response = await api.post('/orders', orderPayload);
+        if (response.data.success) {
+          const createdOrder = response.data.data;
+          const orderId = createdOrder._id || createdOrder.id;
           clearCart();
           toast.success('Order placed successfully!', { description: 'Please prepare cash upon delivery.' });
           nav(`/orders/${orderId}`);
-        } else {
-          // Online Payment (Aamarpay) - Initiate sandbox gateway redirect
-          try {
-            const paymentPayload = {
-              orderId,
-              amount: total,
-              name,
-              email,
-              phone: phoneNumber,
-              address,
-              city,
-              zip
-            };
+        }
+      } else {
+        // Online Payment (Aamarpay) - Initiate payment & draft order (order confirmed only on payment completion)
+        try {
+          // Determine dynamic backend and frontend URLs for callback (works on localhost & production)
+          const apiBase = api.defaults.baseURL || '';
+          const backendUrl = apiBase ? apiBase.replace(/\/api\/?$/, '') : window.location.origin;
+          const frontendUrl = window.location.origin;
 
-            const payResponse = await api.post('/payment/initiate', paymentPayload);
+          const paymentPayload = {
+            orderPayload,
+            amount: total,
+            name,
+            email,
+            phone: phoneNumber,
+            address,
+            city,
+            zip,
+            backendUrl,
+            frontendUrl
+          };
 
-            if (payResponse.data.success) {
-              clearCart();
-              toast.success('Redirecting to Aamarpay Sandbox...');
-              
-              // Construct and submit an HTML Form via POST method
-              // (Aamarpay requires POST submission to render payment methods correctly)
-              const formAction = payResponse.data.formAction || 'https://sandbox.aamarpay.com/index.php';
-              const formData = payResponse.data.formData || {
-                store_id: 'aamarpaytest',
-                signature_key: 'dbb74894e82415a2f7ff0ec3a97e4183',
-                tran_id: payResponse.data.tranId,
-                amount: Number(total).toFixed(2),
-                currency: 'BDT',
-                desc: 'MediCare E-Pharmacy Order',
-                cus_name: name,
-                cus_email: email,
-                cus_phone: phoneNumber,
-                cus_add1: address || 'Dhaka',
-                cus_add2: city || 'Dhaka',
-                cus_city: city || 'Dhaka',
-                cus_state: city || 'Dhaka',
-                cus_postcode: zip || '1200',
-                cus_country: 'Bangladesh',
-                success_url: `http://localhost:5001/api/payment/success?orderId=${orderId}&tranId=${payResponse.data.tranId}`,
-                fail_url: `http://localhost:5001/api/payment/fail?orderId=${orderId}&tranId=${payResponse.data.tranId}`,
-                cancel_url: `http://localhost:5001/api/payment/cancel?orderId=${orderId}&tranId=${payResponse.data.tranId}`
-              };
+          const payResponse = await api.post('/payment/initiate', paymentPayload);
 
-              const form = document.createElement('form');
-              form.method = 'POST';
-              form.action = formAction;
-              form.style.display = 'none';
+          if (payResponse.data.success && payResponse.data.formData) {
+            clearCart();
+            toast.success('Redirecting to Aamarpay Sandbox...');
 
-              Object.keys(formData).forEach((key) => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = (formData as any)[key];
-                form.appendChild(input);
-              });
+            const formAction = payResponse.data.formAction || 'https://sandbox.aamarpay.com/index.php';
+            const formData = payResponse.data.formData;
 
-              document.body.appendChild(form);
-              form.submit();
-            } else {
-              throw new Error(payResponse.data.message || 'Failed to initiate payment gateway');
-            }
-          } catch (payErr: any) {
-            console.error('Payment initiation error:', payErr);
-            toast.error(payErr.response?.data?.message || payErr.message || 'Payment initiation failed. Please try again.');
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = formAction;
+            form.style.display = 'none';
+
+            Object.keys(formData).forEach((key) => {
+              const input = document.createElement('input');
+              input.type = 'hidden';
+              input.name = key;
+              input.value = (formData as any)[key];
+              form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+          } else {
+            throw new Error(payResponse.data.message || 'Failed to initiate payment gateway');
           }
+        } catch (payErr: any) {
+          console.error('Payment initiation error:', payErr);
+          toast.error(payErr.response?.data?.message || payErr.message || 'Payment initiation failed. Please try again.');
         }
       }
     } catch (error: any) {
