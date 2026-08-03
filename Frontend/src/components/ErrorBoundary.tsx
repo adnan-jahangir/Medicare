@@ -54,6 +54,16 @@ export class ErrorBoundary extends Component<Props, State> {
               <p className="text-sm text-muted-foreground">
                 The application encountered an unexpected error. Please try reloading or clearing cache.
               </p>
+              {this.state.error && (
+                <details className="mt-2 text-left">
+                  <summary className="text-xs text-destructive cursor-pointer font-medium">Error details</summary>
+                  <pre className="mt-1 p-2 rounded-lg bg-muted text-[10px] text-destructive overflow-auto max-h-32 whitespace-pre-wrap break-all">
+                    {this.state.error.message}
+                    {'\n'}
+                    {this.state.error.stack?.split('\n').slice(0, 5).join('\n')}
+                  </pre>
+                </details>
+              )}
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">

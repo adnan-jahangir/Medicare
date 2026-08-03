@@ -1,5 +1,5 @@
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { ShoppingCart, Heart, Pill, LayoutDashboard, ShieldCheck, User } from 'lucide-react';
+import { ShoppingCart, Heart, Pill, LayoutDashboard, ShieldCheck, User, ChevronDown, LogOut, Package } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,19 +13,31 @@ const ROLES: { id: Role; label: string; path: string; icon: typeof User }[] = [
 ];
 
 export const Header = () => {
+  try {
   const { cart, wishlist, role, user, logout } = useAppStore();
   const isDriver = user?.role === 'driver';
   const isOwner = user?.role === 'owner';
-  const cartCount = cart.reduce((s, c) => s + c.quantity, 0);
+  const cartCount = cart?.reduce((s, c) => s + (c?.quantity || 0), 0) || 0;
   const { pathname } = useLocation();
 
   const isStorefront = !pathname.startsWith('/owner') && !pathname.startsWith('/admin') && !pathname.startsWith('/dashboard');
+
+  // Safe user display helpers
+  const userInitial = (() => {
+    try { return String(user?.name || user?.email || 'U').charAt(0).toUpperCase(); } catch { return 'U'; }
+  })();
+  const userDisplayName = (() => {
+    try { return String(user?.name || user?.email || 'User').split(' ')[0]; } catch { return 'User'; }
+  })();
 
   const customerNav = (
     <>
       <NavLink to="/" end className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? 'text-primary' : 'text-foreground/70'}`}>Home</NavLink>
       {!isDriver && (
         <NavLink to="/medicines" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? 'text-primary' : 'text-foreground/70'}`}>Medicines</NavLink>
+      )}
+      {user && user.role === 'customer' && (
+        <NavLink to="/dashboard" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? 'text-primary' : 'text-foreground/70'}`}>Dashboard</NavLink>
       )}
       {user && user.role === 'customer' && (
         <NavLink to="/orders" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? 'text-primary' : 'text-foreground/70'}`}>My Orders</NavLink>
@@ -66,7 +78,7 @@ export const Header = () => {
           {!isDriver && (
             <Link to="/wishlist" className="relative">
               <Button variant="ghost" size="icon"><Heart className="h-5 w-5" /></Button>
-              {wishlist.length > 0 && (
+              {(wishlist?.length || 0) > 0 && (
                 <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-1 bg-accent text-accent-foreground">{wishlist.length}</Badge>
               )}
             </Link>
@@ -81,8 +93,59 @@ export const Header = () => {
             </Link>
           )}
 
-          {!user && (
-            <Button asChild size="sm" className="hidden sm:inline-flex">
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2 px-2 hover:bg-primary/10">
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-primary text-xs font-bold ring-2 ring-primary/20">
+                    {userInitial}
+                  </span>
+                  <span className="hidden md:inline-block font-medium text-sm max-w-[120px] truncate">
+                    {userDisplayName}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden sm:block" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{String(user.name || 'User')}</p>
+                    <p className="text-xs leading-none text-muted-foreground truncate">{String(user.email || '')}</p>
+                    <span className="inline-flex items-center text-[10px] font-semibold text-primary uppercase mt-1">
+                      Role: {user.role || role}
+                    </span>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to={user.role === 'owner' ? '/owner' : user.role === 'admin' ? '/admin' : user.role === 'driver' ? '/driver' : '/dashboard'} className="cursor-pointer flex items-center gap-2">
+                    <LayoutDashboard className="h-4 w-4" />
+                    <span>Dashboard</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/update-profile" className="cursor-pointer flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    <span>My Profile</span>
+                  </Link>
+                </DropdownMenuItem>
+                {user.role === 'customer' && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/orders" className="cursor-pointer flex items-center gap-2">
+                      <Package className="h-4 w-4" />
+                      <span>My Orders</span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={logout} className="cursor-pointer text-destructive focus:text-destructive flex items-center gap-2">
+                  <LogOut className="h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button asChild size="sm" className="inline-flex">
               <Link to="/login">Sign in</Link>
             </Button>
           )}
@@ -90,4 +153,18 @@ export const Header = () => {
       </div>
     </header>
   );
+  } catch (err) {
+    console.error('[Header crash]', err);
+    // Minimal fallback header so the app doesn't die
+    return (
+      <header className="sticky top-0 z-50 border-b border-border/40 bg-background">
+        <div className="container flex h-16 items-center gap-6">
+          <a href="/" className="flex items-center gap-2 font-bold text-lg">MediCare</a>
+          <div className="ml-auto">
+            <a href="/login" className="text-sm font-medium text-primary">Sign in</a>
+          </div>
+        </div>
+      </header>
+    );
+  }
 };

@@ -129,6 +129,19 @@ export const useAppStore = create<AppState>()(
     {
       name: 'medicare-store',
       partialize: (s) => ({ cart: s.cart, wishlist: s.wishlist, googleMapsKey: s.googleMapsKey, user: s.user, role: s.role, token: s.token }),
+      onRehydrateStorage: () => (state) => {
+        // Sanitize potentially corrupt persisted user data
+        if (state?.user) {
+          const u = state.user;
+          // If user object is missing critical fields or has wrong types, clear auth
+          if (typeof u !== 'object' || (!u.email && !u.name && !u._id && !u.id)) {
+            console.warn('[Medicare] Clearing corrupt persisted user data');
+            state.user = null;
+            state.token = null;
+            state.role = 'customer';
+          }
+        }
+      },
     },
   ),
 );
