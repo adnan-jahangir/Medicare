@@ -53,9 +53,11 @@ export const DashboardLayout = ({ role, children, title, subtitle }: Props) => {
     <div className="min-h-[calc(100vh-4rem)] grid md:grid-cols-[260px_1fr] bg-muted/30 max-w-full overflow-x-hidden">
       <aside className="hidden md:flex flex-col border-r border-border bg-card">
         <div className="p-5 border-b border-border">
-          <Link to="/" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary mb-3">
-            <ChevronLeft className="h-3 w-3" /> Back to store
-          </Link>
+          {role !== 'driver' && (
+            <Link to="/" className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary mb-3">
+              <ChevronLeft className="h-3 w-3" /> Back to store
+            </Link>
+          )}
           <div className="flex items-center gap-2">
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-primary">
               <meta.icon className="h-4 w-4 text-primary-foreground" />

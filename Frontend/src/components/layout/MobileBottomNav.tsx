@@ -35,7 +35,6 @@ export const MobileBottomNav = () => {
     if (role === 'driver') {
       return [
         { label: 'Dashboard', to: '/driver', icon: LayoutDashboard },
-        { label: 'Store', to: '/', icon: Home },
         { label: 'Profile', to: '/update-profile', icon: User },
       ];
     }

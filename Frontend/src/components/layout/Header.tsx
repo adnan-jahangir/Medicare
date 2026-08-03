@@ -32,7 +32,9 @@ export const Header = () => {
 
   const customerNav = (
     <>
-      <NavLink to="/" end className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? 'text-primary' : 'text-foreground/70'}`}>Home</NavLink>
+      {!isDriver && (
+        <NavLink to="/" end className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? 'text-primary' : 'text-foreground/70'}`}>Home</NavLink>
+      )}
       {!isDriver && (
         <NavLink to="/medicines" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? 'text-primary' : 'text-foreground/70'}`}>Medicines</NavLink>
       )}
