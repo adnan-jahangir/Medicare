@@ -7,7 +7,7 @@ const router = express.Router();
 
 // Aamarpay Credentials from Environment Variables (with sandboxed defaults)
 const STORE_ID = process.env.AMARPAY_STORE_ID || 'aamarpaytest';
-const SIGNATURE_KEY = process.env.AMARPAY_SIGNATURE_KEY || 'db78d101d480e84ba286b6c9ecc9e228';
+const SIGNATURE_KEY = process.env.AMARPAY_SIGNATURE_KEY || 'dbb74894e82415a2f7ff0ec3a97e4183';
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5001';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const AMARPAY_API_URL = process.env.AMARPAY_API_URL || 'https://sandbox.aamarpay.com/jsonpost.php';
