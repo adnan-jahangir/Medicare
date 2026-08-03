@@ -30,8 +30,9 @@ export default function MedicinesPage() {
   }, [q, categories, setParams]);
 
   const filtered = useMemo(() => {
+    const safeList = Array.isArray(medicines) ? medicines : [];
     const ql = q.toLowerCase();
-    return medicines.filter((m) => {
+    return safeList.filter((m) => {
       if (ql && !`${m.name} ${m.brand} ${m.category} ${m.description}`.toLowerCase().includes(ql)) return false;
       if (categories.length && !categories.includes(m.category)) return false;
       if (m.price > maxPrice) return false;

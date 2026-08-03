@@ -13,7 +13,8 @@ const CATS = ['Pain Relief', 'Antibiotics', 'Vitamins', 'Cold & Flu', 'Digestive
 
 export default function HomePage() {
   const { medicines } = useAppStore();
-  const featured = medicines.slice(0, 8);
+  const safeMedicines = Array.isArray(medicines) ? medicines : [];
+  const featured = safeMedicines.slice(0, 8);
   const [q, setQ] = useState('');
   const nav = useNavigate();
 

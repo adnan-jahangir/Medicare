@@ -13,11 +13,16 @@ export const RootLayout = () => {
   useEffect(() => {
     api.get('/medicines')
       .then(res => {
-        // Map _id to id so frontend doesn't break
-        const mapped = res.data.map((m: any) => ({ ...m, id: m._id }));
+        const rawList = Array.isArray(res.data)
+          ? res.data
+          : (Array.isArray(res.data?.data) ? res.data.data : []);
+        const mapped = rawList.map((m: any) => ({ ...m, id: m._id || m.id }));
         setMedicines(mapped);
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.error('Failed to fetch medicines:', err);
+        setMedicines([]);
+      });
   }, [setMedicines]);
 
   return (
