@@ -101,17 +101,22 @@ export default function DriverDashboard() {
       ]);
 
       if (availableRes.status === 'fulfilled') {
-        setAvailableOrders(availableRes.value.data.data || []);
+        setAvailableOrders(availableRes.value.data?.data || []);
       }
-      if (activeRes.status === 'fulfilled' && activeRes.value.data.data) {
-        setActiveOrder(activeRes.value.data.data);
-        startTracking(activeRes.value.data.data._id || activeRes.value.data.data.id);
+      if (activeRes.status === 'fulfilled') {
+        const activeData = activeRes.value.data?.data || null;
+        setActiveOrder(activeData);
+        if (activeData) {
+          startTracking(activeData._id || activeData.id);
+        } else {
+          activeOrderIdRef.current = null;
+        }
       }
       if (profileRes.status === 'fulfilled') {
-        setWallet(profileRes.value.data.data?.wallet || 0);
+        setWallet(profileRes.value.data?.data?.wallet || 0);
       }
       if (historyRes.status === 'fulfilled') {
-        setCompletedOrders(historyRes.value.data.data || []);
+        setCompletedOrders(historyRes.value.data?.data || []);
       }
     } catch (err) {
       console.error('Dashboard load error:', err);
@@ -586,9 +591,8 @@ export default function DriverDashboard() {
         )}
 
         {/* Available / History Tabs */}
-        {!activeOrder && (
-          <div className="space-y-4">
-            <div className="flex gap-1 p-1 bg-muted rounded-xl">
+        <div className="space-y-4">
+          <div className="flex gap-1 p-1 bg-muted rounded-xl">
               <button
                 onClick={() => setActiveTab('available')}
                 className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-bold transition-all ${
@@ -721,7 +725,6 @@ export default function DriverDashboard() {
               </div>
             )}
           </div>
-        )}
 
         {/* Quick Tips Card */}
         <Card className="p-5 bg-muted/30 border-border/50">
