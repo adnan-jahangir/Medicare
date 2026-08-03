@@ -1,7 +1,9 @@
 import { ReactNode } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { Pill, LayoutDashboard, Package, Users, Building2, ShoppingBag, ShieldCheck, ChevronLeft, User as UserIcon, LogOut, Truck } from 'lucide-react';
+import { Pill, LayoutDashboard, Package, Users, Building2, ShoppingBag, ShieldCheck, ChevronLeft, User as UserIcon, LogOut, Truck, Settings } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import type { Role } from '@/lib/types';
 
 interface Props { role: Role; children: ReactNode; title: string; subtitle?: string }
@@ -97,12 +99,30 @@ export const DashboardLayout = ({ role, children, title, subtitle }: Props) => {
             {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
           </div>
           {user && (
-            <Link to="/update-profile" className="flex items-center gap-2 p-1.5 pr-3.5 rounded-full border border-border/80 bg-muted/40 hover:bg-primary/10 hover:border-primary/40 transition-all shadow-sm">
-              <span className="grid h-8 w-8 place-items-center rounded-full bg-primary text-primary-foreground text-xs font-bold shadow-inner">
-                {String(user.name || user.email || 'U').charAt(0).toUpperCase()}
-              </span>
-              <span className="hidden sm:inline text-xs font-bold text-foreground">My Profile</span>
-            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="h-9 w-9 rounded-full border-border/80 bg-muted/40 hover:bg-primary/10 hover:border-primary/40 shadow-sm transition-all" aria-label="Dashboard settings">
+                  <Settings className="h-4 w-4 text-foreground/80" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel className="font-normal text-xs text-muted-foreground truncate">
+                  {String(user.name || user.email || 'User')}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/update-profile" className="cursor-pointer flex items-center gap-2">
+                    <UserIcon className="h-4 w-4" />
+                    <span>Update Profile</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={logout} className="cursor-pointer text-destructive focus:text-destructive flex items-center gap-2">
+                  <LogOut className="h-4 w-4" />
+                  <span>Logout</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
         <div className="p-6 md:p-10">{children}</div>

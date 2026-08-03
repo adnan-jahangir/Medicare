@@ -94,56 +94,16 @@ export const Header = () => {
           )}
 
           {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-2 px-2 hover:bg-primary/10">
-                  <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-primary text-xs font-bold ring-2 ring-primary/20">
-                    {userInitial}
-                  </span>
-                  <span className="hidden md:inline-block font-medium text-sm max-w-[120px] truncate">
-                    {userDisplayName}
-                  </span>
-                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden sm:block" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{String(user.name || 'User')}</p>
-                    <p className="text-xs leading-none text-muted-foreground truncate">{String(user.email || '')}</p>
-                    <span className="inline-flex items-center text-[10px] font-semibold text-primary uppercase mt-1">
-                      Role: {user.role || role}
-                    </span>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to={user.role === 'owner' ? '/owner' : user.role === 'admin' ? '/admin' : user.role === 'driver' ? '/driver' : '/dashboard'} className="cursor-pointer flex items-center gap-2">
-                    <LayoutDashboard className="h-4 w-4" />
-                    <span>Dashboard</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/update-profile" className="cursor-pointer flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    <span>My Profile</span>
-                  </Link>
-                </DropdownMenuItem>
-                {user.role === 'customer' && (
-                  <DropdownMenuItem asChild>
-                    <Link to="/orders" className="cursor-pointer flex items-center gap-2">
-                      <Package className="h-4 w-4" />
-                      <span>My Orders</span>
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="cursor-pointer text-destructive focus:text-destructive flex items-center gap-2">
-                  <LogOut className="h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button variant="ghost" size="sm" className="gap-2 px-2 hover:bg-primary/10" asChild>
+              <Link to={user.role === 'owner' ? '/owner' : user.role === 'admin' ? '/admin' : user.role === 'driver' ? '/driver' : '/dashboard'}>
+                <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-primary text-xs font-bold ring-2 ring-primary/20">
+                  {userInitial}
+                </span>
+                <span className="hidden md:inline-block font-medium text-sm max-w-[120px] truncate">
+                  {userDisplayName}
+                </span>
+              </Link>
+            </Button>
           ) : (
             <Button asChild size="sm" className="inline-flex">
               <Link to="/login">Sign in</Link>
