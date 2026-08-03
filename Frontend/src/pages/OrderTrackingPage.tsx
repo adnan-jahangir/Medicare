@@ -54,11 +54,15 @@ export default function OrderTrackingPage() {
       const coords = getCoords(o.deliveryAddress);
       if (coords.lat !== 0 || coords.lng !== 0) return coords;
     }
-    return getCoords(o?.destination);
+    const dest = getCoords(o?.destination);
+    if (dest.lat !== 0 || dest.lng !== 0) return dest;
+    return { lat: 22.3680, lng: 91.8020 }; // Customer fallback coords
   };
 
   const getPickupCoords = (o: any): { lat: number; lng: number } => {
-    return getCoords(o?.pickup);
+    const pickup = getCoords(o?.pickup);
+    if (pickup.lat !== 0 || pickup.lng !== 0) return pickup;
+    return { lat: 22.3568, lng: 91.7832 }; // Pharmacy fallback coords
   };
 
   // Fetch full order details from backend

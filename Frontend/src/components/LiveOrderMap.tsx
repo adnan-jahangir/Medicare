@@ -423,24 +423,35 @@ export function LiveOrderMap({
 
   // ── Calculate ETA and distance ──────────────────────────────────────
   const trackingInfo = useMemo(() => {
-    if (!isDeliveryActive || !isValid(driverPos) || !destValid) return null;
+    // Determine target destination (Customer)
+    let targetDest = destValid ? dest : [22.3680, 91.8020] as [number, number]; // Fallback if [0,0]
+
+    // Determine starting point (Driver if active, otherwise Pharmacy)
+    let startPoint: [number, number] | null = null;
+    if (isDeliveryActive && isValid(driverPos)) {
+      startPoint = driverPos;
+    } else if (pickupValid) {
+      startPoint = pickup;
+    } else {
+      startPoint = [22.3568, 91.7832]; // Fallback pharmacy location
+    }
 
     const R = 6371; // km
-    const dLat = ((dest[0] - driverPos[0]) * Math.PI) / 180;
-    const dLng = ((dest[1] - driverPos[1]) * Math.PI) / 180;
+    const dLat = ((targetDest[0] - startPoint[0]) * Math.PI) / 180;
+    const dLng = ((targetDest[1] - startPoint[1]) * Math.PI) / 180;
     const a =
       Math.sin(dLat / 2) ** 2 +
-      Math.cos((driverPos[0] * Math.PI) / 180) *
-        Math.cos((dest[0] * Math.PI) / 180) *
+      Math.cos((startPoint[0] * Math.PI) / 180) *
+        Math.cos((targetDest[0] * Math.PI) / 180) *
         Math.sin(dLng / 2) ** 2;
     const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const eta = Math.max(1, Math.ceil((dist / 20) * 60)); // 20 km/h avg
 
     return {
-      distance: dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`,
+      distance: dist < 0.1 ? '300 m' : dist < 1 ? `${Math.round(dist * 1000)} m` : `${dist.toFixed(1)} km`,
       eta: `${eta} min`,
     };
-  }, [driverPos, dest, destValid, isDeliveryActive]);
+  }, [driverPos, pickup, dest, pickupValid, destValid, isDeliveryActive]);
 
   // ── Render ──────────────────────────────────────────────────────────
 
