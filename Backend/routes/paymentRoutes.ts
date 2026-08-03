@@ -99,11 +99,35 @@ router.post('/initiate', protect, async (req: AuthRequest, res: Response) => {
       if (match) trackId = match[1];
     }
 
+    // Form payload for HTML Form POST submission (guarantees full payment options render)
+    const formData = {
+      store_id: STORE_ID,
+      signature_key: SIGNATURE_KEY,
+      tran_id: tranId,
+      amount: Number(amount).toFixed(2),
+      currency: 'BDT',
+      desc: `MediCare E-Pharmacy Order #${orderId.slice(-6).toUpperCase()}`,
+      cus_name: name || req.user.name || 'Customer',
+      cus_email: email || req.user.email || 'customer@medicare.com',
+      cus_phone: phone || req.user.phoneNumber || '01700000000',
+      cus_add1: address || 'Dhaka',
+      cus_add2: city || 'Dhaka',
+      cus_city: city || 'Dhaka',
+      cus_state: city || 'Dhaka',
+      cus_postcode: zip || '1200',
+      cus_country: 'Bangladesh',
+      success_url: `${BACKEND_URL}/api/payment/success?orderId=${orderId}&tranId=${tranId}`,
+      fail_url: `${BACKEND_URL}/api/payment/fail?orderId=${orderId}&tranId=${tranId}`,
+      cancel_url: `${BACKEND_URL}/api/payment/cancel?orderId=${orderId}&tranId=${tranId}`
+    };
+
     return res.json({
       success: true,
       url: paymentUrl,
       tranId,
       trackId,
+      formAction: 'https://sandbox.aamarpay.com/index.php',
+      formData,
       methods: trackId ? {
         bkash: `https://sandbox.aamarpay.com/process.php?track=${trackId}&type=14`,
         nagad: `https://sandbox.aamarpay.com/process.php?track=${trackId}&type=31`,

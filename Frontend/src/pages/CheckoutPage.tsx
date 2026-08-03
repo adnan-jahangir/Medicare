@@ -114,11 +114,49 @@ export default function CheckoutPage() {
 
             const payResponse = await api.post('/payment/initiate', paymentPayload);
 
-            if (payResponse.data.success && payResponse.data.url) {
+            if (payResponse.data.success) {
               clearCart();
               toast.success('Redirecting to Aamarpay Sandbox...');
-              // Redirect directly to Aamarpay Sandbox Gateway
-              window.location.href = payResponse.data.url;
+              
+              // Construct and submit an HTML Form via POST method
+              // (Aamarpay requires POST submission to render payment methods correctly)
+              const formAction = payResponse.data.formAction || 'https://sandbox.aamarpay.com/index.php';
+              const formData = payResponse.data.formData || {
+                store_id: 'aamarpaytest',
+                signature_key: 'dbb74894e82415a2f7ff0ec3a97e4183',
+                tran_id: payResponse.data.tranId,
+                amount: Number(total).toFixed(2),
+                currency: 'BDT',
+                desc: 'MediCare E-Pharmacy Order',
+                cus_name: name,
+                cus_email: email,
+                cus_phone: phoneNumber,
+                cus_add1: address || 'Dhaka',
+                cus_add2: city || 'Dhaka',
+                cus_city: city || 'Dhaka',
+                cus_state: city || 'Dhaka',
+                cus_postcode: zip || '1200',
+                cus_country: 'Bangladesh',
+                success_url: `http://localhost:5001/api/payment/success?orderId=${orderId}&tranId=${payResponse.data.tranId}`,
+                fail_url: `http://localhost:5001/api/payment/fail?orderId=${orderId}&tranId=${payResponse.data.tranId}`,
+                cancel_url: `http://localhost:5001/api/payment/cancel?orderId=${orderId}&tranId=${payResponse.data.tranId}`
+              };
+
+              const form = document.createElement('form');
+              form.method = 'POST';
+              form.action = formAction;
+              form.style.display = 'none';
+
+              Object.keys(formData).forEach((key) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = (formData as any)[key];
+                form.appendChild(input);
+              });
+
+              document.body.appendChild(form);
+              form.submit();
             } else {
               throw new Error(payResponse.data.message || 'Failed to initiate payment gateway');
             }
