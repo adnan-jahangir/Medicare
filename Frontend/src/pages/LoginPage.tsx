@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAppStore } from '@/store/useAppStore';
-import { Building2, Pill, ShieldCheck, User } from 'lucide-react';
+import { Building2, Pill, ShieldCheck, User, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import DriverRegistrationForm from '@/components/driver/DriverRegistrationForm';
@@ -35,7 +35,9 @@ const GoogleIcon = () => (
 
 const PANEL_OPTIONS = [
   { id: 'customer', label: 'Customer', description: 'Browse medicines, place orders, and track delivery', icon: User, path: '/dashboard' },
+  { id: 'owner', label: 'Shop Owner', description: 'Manage shop inventory, medicines, and orders', icon: Building2, path: '/owner' },
   { id: 'driver', label: 'Driver', description: 'Manage deliveries, view routes, and update order status', icon: Pill, path: '/driver' },
+  { id: 'admin', label: 'Admin', description: 'System overview, user management, and approvals', icon: ShieldCheck, path: '/admin' },
 ] as const;
 
 export default function LoginPage() {
@@ -50,6 +52,7 @@ export default function LoginPage() {
       else nav('/dashboard');
     }
   }, [user, nav]);
+
   const [name, setName] = useState('');
   const [customerPhoneNumber, setCustomerPhoneNumber] = useState('');
   const [houseLocation, setHouseLocation] = useState('');
@@ -61,6 +64,7 @@ export default function LoginPage() {
   const [shopLicense, setShopLicense] = useState('');
   const [email, setEmail] = useState('');
   const [pwd, setPwd] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [panel, setPanel] = useState<(typeof PANEL_OPTIONS)[number]['id']>('customer');
 
   const handleSubmit = async (e: React.FormEvent, mode: 'login' | 'register') => {
@@ -189,14 +193,83 @@ export default function LoginPage() {
 
                 <TabsContent value="login">
                   <h1 className="font-display font-bold text-3xl">Welcome back</h1>
-                  <p className="text-muted-foreground mt-1 mb-6">
+                  <p className="text-muted-foreground mt-1 mb-4">
                     Sign in to open your {PANEL_OPTIONS.find((option) => option.id === panel)?.label.toLowerCase()} dashboard. 
                   </p>
 
+                  {/* Demo Credential Quick Fill Hints */}
+                  {panel === 'owner' && (
+                    <div className="mb-4 p-3 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="font-bold text-primary block">Shop Owner Demo Credentials:</span>
+                        <span className="text-muted-foreground font-mono">owner@medicare.com / owner123</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="h-7 text-[11px] font-bold rounded-lg"
+                        onClick={() => { setEmail('owner@medicare.com'); setPwd('owner123'); }}
+                      >
+                        Auto Fill
+                      </Button>
+                    </div>
+                  )}
+
+                  {panel === 'admin' && (
+                    <div className="mb-4 p-3 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="font-bold text-primary block">Admin Demo Credentials:</span>
+                        <span className="text-muted-foreground font-mono">admin@medicare.com / admin123</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="h-7 text-[11px] font-bold rounded-lg"
+                        onClick={() => { setEmail('admin@medicare.com'); setPwd('admin123'); }}
+                      >
+                        Auto Fill
+                      </Button>
+                    </div>
+                  )}
+
                   <form className="space-y-4" onSubmit={(e) => handleSubmit(e, 'login')}>
-                    <div><Label htmlFor="le">Email or Phone Number</Label><Input id="le" type="text" required value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1.5" placeholder="Email or Phone Number" /></div>
-                    <div><Label htmlFor="lp">Password</Label><Input id="lp" type="password" required value={pwd} onChange={(e) => setPwd(e.target.value)} className="mt-1.5" /></div>
-                    <Button type="submit" size="lg" className="w-full rounded-full shadow-sm">Sign in</Button>
+                    <div>
+                      <Label htmlFor="le">Email or Phone Number</Label>
+                      <Input
+                        id="le"
+                        type="text"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="mt-1.5"
+                        placeholder="Email or Phone Number"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="lp">Password</Label>
+                      <div className="relative mt-1.5">
+                        <Input
+                          id="lp"
+                          type={showPassword ? "text" : "password"}
+                          required
+                          value={pwd}
+                          onChange={(e) => setPwd(e.target.value)}
+                          className="pr-10"
+                          placeholder="••••••••"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <Button type="submit" size="lg" className="w-full rounded-full shadow-sm font-bold">Sign in</Button>
                     
                     <div className="relative my-6">
                       <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/60" /></div>
@@ -239,7 +312,20 @@ export default function LoginPage() {
                                 <div className="col-span-2 sm:col-span-1"><Label htmlFor="son">Full Name</Label><Input id="son" required value={shopOwnerName} onChange={(e) => setShopOwnerName(e.target.value)} className="mt-1.5" placeholder="Dr. Amelia Cole" /></div>
                                 <div className="col-span-2 sm:col-span-1"><Label htmlFor="sp">Phone Number</Label><Input id="sp" type="tel" required value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="mt-1.5" placeholder="+1 555 123 4567" /></div>
                                 <div className="col-span-2 sm:col-span-1"><Label htmlFor="re">Email</Label><Input id="re" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1.5" placeholder="amelia@example.com" /></div>
-                                <div className="col-span-2 sm:col-span-1"><Label htmlFor="rp">Password</Label><Input id="rp" type="password" required value={pwd} onChange={(e) => setPwd(e.target.value)} className="mt-1.5" /></div>
+                                <div className="col-span-2 sm:col-span-1">
+                                  <Label htmlFor="rp">Password</Label>
+                                  <div className="relative mt-1.5">
+                                    <Input id="rp" type={showPassword ? "text" : "password"} required value={pwd} onChange={(e) => setPwd(e.target.value)} className="pr-10" />
+                                    <button
+                                      type="button"
+                                      onClick={() => setShowPassword(!showPassword)}
+                                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                                      aria-label={showPassword ? "Hide password" : "Show password"}
+                                    >
+                                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </button>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                             
@@ -252,7 +338,7 @@ export default function LoginPage() {
                                 <div className="col-span-2"><Label htmlFor="sl">Shop Location</Label><Input id="sl" required value={shopLocation} onChange={(e) => setShopLocation(e.target.value)} className="mt-1.5" placeholder="New York, NY" /></div>
                               </div>
                             </div>
-                            <Button type="submit" size="lg" className="w-full rounded-full mt-4">Create account</Button>
+                            <Button type="submit" size="lg" className="w-full rounded-full mt-4 font-bold">Create account</Button>
                           </div>
                         ) : (
                           <>
@@ -269,8 +355,21 @@ export default function LoginPage() {
                               </>
                             )}
                             <div><Label htmlFor="re">Email</Label><Input id="re" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1.5" /></div>
-                            <div><Label htmlFor="rp">Password</Label><Input id="rp" type="password" required value={pwd} onChange={(e) => setPwd(e.target.value)} className="mt-1.5" /></div>
-                            <Button type="submit" size="lg" className="w-full rounded-full shadow-sm">Create account</Button>
+                            <div>
+                              <Label htmlFor="rp">Password</Label>
+                              <div className="relative mt-1.5">
+                                <Input id="rp" type={showPassword ? "text" : "password"} required value={pwd} onChange={(e) => setPwd(e.target.value)} className="pr-10" />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
+                                  aria-label={showPassword ? "Hide password" : "Show password"}
+                                >
+                                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                              </div>
+                            </div>
+                            <Button type="submit" size="lg" className="w-full rounded-full shadow-sm font-bold">Create account</Button>
                             
                             <div className="relative my-6">
                               <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/60" /></div>

@@ -129,15 +129,21 @@ router.post("/login", loginLimiter, async (req: Request, res: Response) => {
 
     const { email, password } = value as any;
 
+    const adminEmail = (process.env.ADMIN_EMAIL || 'admin@medicare.com').trim().toLowerCase();
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    const ownerEmail = (process.env.OWNER_EMAIL || 'owner@medicare.com').trim().toLowerCase();
+    const ownerPassword = process.env.OWNER_PASSWORD || 'owner123';
+    const inputEmail = (email || '').trim().toLowerCase();
+
     // Admin static login bypass
-    if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD && email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
-      let adminUser = await User.findOne({ email });
+    if (inputEmail === adminEmail && password === adminPassword) {
+      let adminUser = await User.findOne({ email: adminEmail });
       if (!adminUser) {
         const salt = await bcrypt.genSalt(10);
         const password_hash = await bcrypt.hash(password, salt);
         adminUser = await User.create({
           name: "System Admin",
-          email,
+          email: adminEmail,
           password_hash,
           role: "admin",
           isApproved: true
@@ -161,7 +167,7 @@ router.post("/login", loginLimiter, async (req: Request, res: Response) => {
     }
 
     // Owner static login bypass
-    if (process.env.OWNER_EMAIL && process.env.OWNER_PASSWORD && email === process.env.OWNER_EMAIL && password === process.env.OWNER_PASSWORD) {
+    if (inputEmail === ownerEmail && password === ownerPassword) {
       let pharmacy = await Pharmacy.findOne({ name: "Medicare pharmacy" });
       if (!pharmacy) {
         pharmacy = await Pharmacy.create({
@@ -172,13 +178,13 @@ router.post("/login", loginLimiter, async (req: Request, res: Response) => {
         });
       }
 
-      let ownerUser = await User.findOne({ email });
+      let ownerUser = await User.findOne({ email: ownerEmail });
       if (!ownerUser) {
         const salt = await bcrypt.genSalt(10);
         const password_hash = await bcrypt.hash(password, salt);
         ownerUser = await User.create({
           name: "Shop Owner",
-          email,
+          email: ownerEmail,
           password_hash,
           role: "owner",
           shopCode: pharmacy._id.toString(),
