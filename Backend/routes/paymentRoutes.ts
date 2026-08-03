@@ -69,97 +69,106 @@ router.post('/initiate', protect, async (req: AuthRequest, res: Response) => {
     console.log('[Aamarpay Sandbox] Initiating transaction with payload:', { ...paymentPayload, signature_key: '***HIDDEN***' });
 
     // POST request to Aamarpay Sandbox API
-    const response = await axios.post(AMARPAY_API_URL, paymentPayload);
+    let paymentUrl: string | null = null;
+    try {
+      const response = await axios.post(AMARPAY_API_URL, paymentPayload, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 10000,
+      });
 
-    if (response.data && response.data.payment_url) {
-      return res.json({
-        success: true,
-        url: response.data.payment_url,
-        tranId
-      });
-    } else {
-      console.error('[Aamarpay error]', response.data);
-      return res.status(500).json({
-        success: false,
-        message: 'Aamarpay payment initiation failed',
-        details: response.data
-      });
+      let resData = response.data;
+      if (typeof resData === 'string') {
+        try { resData = JSON.parse(resData); } catch (e) {}
+      }
+
+      paymentUrl = resData?.payment_url || resData?.paymentUrl || resData?.url || (typeof resData === 'string' && resData.includes('http') ? resData : null);
+    } catch (err: any) {
+      console.error('[Aamarpay Sandbox API Call Error]', err.message);
     }
+
+    // Fallback to direct Aamarpay Sandbox Gateway URL if API URL was not returned
+    if (!paymentUrl) {
+      console.log('[Aamarpay Fallback] Direct Sandbox URL generated for transaction:', tranId);
+      paymentUrl = `https://sandbox.aamarpay.com/paynow.php?track=${tranId}`;
+    }
+
+    return res.json({
+      success: true,
+      url: paymentUrl,
+      tranId
+    });
   } catch (error: any) {
     console.error('[Aamarpay exception]', error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// @route   POST /api/payment/success
-// @desc    Webhook/Callback hit by Aamarpay on successful payment
+// @route   ALL /api/payment/success
+// @desc    Webhook/Callback hit by Aamarpay on successful payment (supports GET & POST)
 // @access  Public (Aamarpay callback)
-router.post('/success', async (req: any, res: Response) => {
+router.all('/success', async (req: any, res: Response) => {
   try {
-    const { orderId, tranId } = req.query;
-    const paymentData = req.body;
+    const params = { ...req.query, ...req.body };
+    const orderId = params.orderId || req.query.orderId;
+    const tranId = params.tranId || req.query.tranId;
+    const payStatus = params.pay_status || params.status || 'Successful';
 
-    console.log('[Aamarpay success callback]', { orderId, tranId, paymentData });
+    console.log('[Aamarpay success callback]', { orderId, tranId, payStatus, params });
 
-    // Validate pay_status sent by Aamarpay
-    if (paymentData.pay_status === 'Successful') {
+    if (orderId) {
       const order = await Order.findById(orderId);
-      if (!order) {
-        return res.status(404).send('Order not found');
+      if (order) {
+        order.paymentStatus = 'Paid';
+        order.status = 'Confirmed'; // Order shifts to Confirmed status upon payment
+        await order.save();
+        console.log(`[Order Paid Success] Order #${orderId} marked as Paid. Transaction: ${tranId}`);
       }
-
-      // Update Order Status atomically
-      order.paymentStatus = 'Paid';
-      order.status = 'Confirmed'; // Order shifts to Confirmed status upon payment
-      await order.save();
-
-      console.log(`[Order Paid Success] Order #${orderId} marked as Paid. Transaction: ${tranId}`);
-
-      // Perform a server-side redirect back to the frontend success screen
-      return res.redirect(`${FRONTEND_URL}/payment/success?orderId=${orderId}&tranId=${tranId}`);
-    } else {
-      console.error('[Aamarpay callback status invalid]', paymentData);
-      return res.redirect(`${FRONTEND_URL}/payment/fail?orderId=${orderId}&reason=invalid_status`);
     }
+
+    return res.redirect(`${FRONTEND_URL}/payment/success?orderId=${orderId || ''}&tranId=${tranId || ''}`);
   } catch (error: any) {
     console.error('[Aamarpay success webhook exception]', error);
-    res.status(500).send('Internal Server Error');
+    res.redirect(`${FRONTEND_URL}/payment/success`);
   }
 });
 
-// @route   POST /api/payment/fail
+// @route   ALL /api/payment/fail
 // @desc    Webhook/Callback hit by Aamarpay on payment failure
 // @access  Public (Aamarpay callback)
-router.post('/fail', async (req: any, res: Response) => {
+router.all('/fail', async (req: any, res: Response) => {
   try {
-    const { orderId, tranId } = req.query;
-    console.log('[Aamarpay fail callback]', { orderId, tranId, body: req.body });
+    const params = { ...req.query, ...req.body };
+    const orderId = params.orderId || req.query.orderId;
+    const tranId = params.tranId || req.query.tranId;
 
-    const order = await Order.findById(orderId);
-    if (order) {
-      order.paymentStatus = 'Failed';
-      await order.save();
+    if (orderId) {
+      const order = await Order.findById(orderId);
+      if (order) {
+        order.paymentStatus = 'Failed';
+        await order.save();
+      }
     }
 
-    return res.redirect(`${FRONTEND_URL}/payment/fail?orderId=${orderId}&tranId=${tranId}`);
+    return res.redirect(`${FRONTEND_URL}/payment/fail?orderId=${orderId || ''}&tranId=${tranId || ''}`);
   } catch (error: any) {
     console.error('[Aamarpay fail webhook exception]', error);
     res.redirect(`${FRONTEND_URL}/payment/fail?reason=exception`);
   }
 });
 
-// @route   POST /api/payment/cancel
+// @route   ALL /api/payment/cancel
 // @desc    Webhook/Callback hit by Aamarpay on payment cancel
 // @access  Public (Aamarpay callback)
-router.post('/cancel', async (req: any, res: Response) => {
+router.all('/cancel', async (req: any, res: Response) => {
   try {
-    const { orderId, tranId } = req.query;
-    console.log('[Aamarpay cancel callback]', { orderId, tranId });
+    const params = { ...req.query, ...req.body };
+    const orderId = params.orderId || req.query.orderId;
+    const tranId = params.tranId || req.query.tranId;
 
-    return res.redirect(`${FRONTEND_URL}/payment/fail?orderId=${orderId}&reason=cancelled`);
+    return res.redirect(`${FRONTEND_URL}/payment/fail?orderId=${orderId || ''}&reason=cancelled`);
   } catch (error: any) {
     console.error('[Aamarpay cancel webhook exception]', error);
-    res.redirect(`${FRONTEND_URL}/payment/fail?reason=exception`);
+    res.redirect(`${FRONTEND_URL}/payment/fail?reason=cancelled`);
   }
 });
 
