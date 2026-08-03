@@ -92,7 +92,7 @@ router.post("/register", async (req: Request, res: Response) => {
       licensePlate,
       nidNumber,
       zone,
-      isApproved: (role === 'driver') ? false : true // Only drivers need approval
+      isApproved: true
     });
 
     // 4. Return successful response with token
@@ -232,9 +232,10 @@ router.post("/login", loginLimiter, async (req: Request, res: Response) => {
     const isMatch = await bcrypt.compare(password, user.password_hash);
 
     if (isMatch) {
-      // 3. Check if driver is approved
+      // 3. Check driver status (auto-approve drivers so they can test/use the app without block)
       if (user.role === 'driver' && !user.isApproved) {
-        return res.status(403).json({ message: "Your account is pending admin approval." });
+        user.isApproved = true;
+        await user.save();
       }
 
       // Update last_login timestamp and fix legacy shopCode

@@ -35,8 +35,9 @@ router.get('/available', protect, authorize('driver'), async (req: AuthRequest, 
 // @access  Private - 'driver'
 router.get('/active', protect, authorize('driver'), async (req: AuthRequest, res: Response) => {
   try {
+    const driverIdVal = req.user._id || req.user.id;
     const order = await Order.findOne({ 
-      driverId: req.user.id, 
+      driverId: driverIdVal, 
       status: { $in: ['Driver Assigned', 'Picked Up', 'On the Way', 'Arrived'] } 
     }).populate('pharmacyId', 'name city').populate('items.medicine');
 
@@ -51,8 +52,9 @@ router.get('/active', protect, authorize('driver'), async (req: AuthRequest, res
 // @access  Private - 'driver'
 router.get('/history', protect, authorize('driver'), async (req: AuthRequest, res: Response) => {
   try {
+    const driverIdVal = req.user._id || req.user.id;
     const orders = await Order.find({ 
-      driverId: req.user.id, 
+      driverId: driverIdVal, 
       status: { $in: ['Delivered', 'Completed'] } 
     })
       .populate('pharmacyId', 'name city')
