@@ -86,6 +86,22 @@ export default function OrdersPage() {
     );
   }
 
+  const handleCancelOrder = async (e: React.MouseEvent, orderId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm('Are you sure you want to cancel this order?')) return;
+
+    try {
+      setOrders(prev => prev.map(o => (o._id === orderId || o.id === orderId) ? { ...o, status: 'Cancelled' } : o));
+      await api.patch(`/orders/${orderId}`, { status: 'Cancelled' });
+    } catch (err: any) {
+      console.error('Failed to cancel order:', err);
+      // Refresh list on failure
+      const res = await api.get('/orders');
+      setOrders(Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.data) ? res.data.data : []));
+    }
+  };
+
   return (
     <div className="container py-10 max-w-5xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -131,59 +147,74 @@ export default function OrdersPage() {
       {/* Orders List */}
       {filteredOrders.length > 0 ? (
         <div className="space-y-4">
-          {filteredOrders.map((o: any) => (
-            <Link
-              key={o._id || o.id}
-              to={`/orders/${o._id || o.id}`}
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-border/80 bg-card hover:border-primary/60 hover:shadow-md transition-all group"
-            >
-              <div className="flex items-center gap-4 min-w-0">
-                <div className="flex -space-x-3 flex-shrink-0">
-                  {(o.items || []).slice(0, 3).map((it: any, idx: number) => {
-                    const med = it.medicine;
-                    if (!med) return null;
-                    return (
-                      <img
-                        key={med._id || med.id || idx}
-                        src={getMedicineImageUrl(med)}
-                        alt={med.name || 'Medicine'}
-                        onError={(e) => handleMedicineImgError(e, med)}
-                        className="h-12 w-12 rounded-xl object-cover border-2 border-card shadow-sm"
-                      />
-                    );
-                  })}
-                </div>
+          {filteredOrders.map((o: any) => {
+            const canCancel = ['Pending', 'Confirmed', 'Preparing'].includes(o.status);
 
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-display font-bold text-base text-foreground">
-                      #{(o._id || o.id || '').slice(-6).toUpperCase()}
-                    </span>
-                    <Badge className={`border text-[11px] font-bold ${STATUS_COLORS[o.status] || 'bg-muted text-muted-foreground'}`}>
-                      {o.status}
-                    </Badge>
+            return (
+              <Link
+                key={o._id || o.id}
+                to={`/orders/${o._id || o.id}`}
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-border/80 bg-card hover:border-primary/60 hover:shadow-md transition-all group"
+              >
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="flex -space-x-3 flex-shrink-0">
+                    {(o.items || []).slice(0, 3).map((it: any, idx: number) => {
+                      const med = it.medicine;
+                      if (!med) return null;
+                      return (
+                        <img
+                          key={med._id || med.id || idx}
+                          src={getMedicineImageUrl(med)}
+                          alt={med.name || 'Medicine'}
+                          onError={(e) => handleMedicineImgError(e, med)}
+                          className="h-12 w-12 rounded-xl object-cover border-2 border-card shadow-sm"
+                        />
+                      );
+                    })}
                   </div>
 
-                  <div className="text-xs text-muted-foreground flex items-center gap-2 truncate">
-                    <Clock className="h-3 w-3 flex-shrink-0" />
-                    <span>{new Date(o.createdAt).toLocaleString()}</span>
-                    <span>•</span>
-                    <span>{(o.items || []).length} item{(o.items || []).length !== 1 && 's'}</span>
-                  </div>
-                </div>
-              </div>
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-display font-bold text-base text-foreground">
+                        #{(o._id || o.id || '').slice(-6).toUpperCase()}
+                      </span>
+                      <Badge className={`border text-[11px] font-bold ${STATUS_COLORS[o.status] || 'bg-muted text-muted-foreground'}`}>
+                        {o.status}
+                      </Badge>
+                    </div>
 
-              <div className="flex items-center justify-between sm:justify-end gap-4 pt-3 sm:pt-0 border-t sm:border-0 border-border/40">
-                <div className="text-left sm:text-right">
-                  <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Total</div>
-                  <div className="font-display font-bold text-lg text-primary tabular-nums">
-                    <span className="text-[1.1em]">৳</span>{(o.total || 0).toFixed(2)}
+                    <div className="text-xs text-muted-foreground flex items-center gap-2 truncate">
+                      <Clock className="h-3 w-3 flex-shrink-0" />
+                      <span>{new Date(o.createdAt).toLocaleString()}</span>
+                      <span>•</span>
+                      <span>{(o.items || []).length} item{(o.items || []).length !== 1 && 's'}</span>
+                    </div>
                   </div>
                 </div>
-                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-              </div>
-            </Link>
-          ))}
+
+                <div className="flex items-center justify-between sm:justify-end gap-4 pt-3 sm:pt-0 border-t sm:border-0 border-border/40">
+                  {canCancel && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => handleCancelOrder(e, o._id || o.id)}
+                      className="rounded-full h-8 px-3 text-xs font-semibold text-red-600 border-red-500/30 hover:bg-red-500/10 hover:border-red-500/50"
+                    >
+                      <XCircle className="h-3.5 w-3.5 mr-1" />
+                      Cancel
+                    </Button>
+                  )}
+                  <div className="text-left sm:text-right">
+                    <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Total</div>
+                    <div className="font-display font-bold text-lg text-primary tabular-nums">
+                      <span className="text-[1.1em]">৳</span>{(o.total || 0).toFixed(2)}
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                </div>
+              </Link>
+            );
+          })}
         </div>
       ) : (
         <div className="py-16 text-center border-2 border-dashed border-border/60 rounded-3xl space-y-3 bg-card/40">

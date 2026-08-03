@@ -236,9 +236,9 @@ router.get('/:id', protect, async (req: AuthRequest, res: Response) => {
 });
 
 // @route   PATCH /api/orders/:id
-// @desc    Update order status
-// @access  Private - 'admin' or 'owner'
-router.patch('/:id', protect, authorize('admin', 'owner', 'pharmacy', 'vendor', 'shop_owner'), async (req: AuthRequest, res: Response) => {
+// @desc    Update order status (Supports admin, owner, pharmacy, driver, and customer order cancellation)
+// @access  Private
+router.patch('/:id', protect, async (req: AuthRequest, res: Response) => {
   try {
     const { status, driverId, currentLocation } = req.body;
 
@@ -247,9 +247,22 @@ router.patch('/:id', protect, authorize('admin', 'owner', 'pharmacy', 'vendor', 
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    // Check authorization: Owners/Pharmacies/Vendors/Shop owners can only update status of orders belonging to their shop
+    const isCustomer = req.user.role === 'customer';
     const isShopOwnerRole = ['owner', 'pharmacy', 'vendor', 'shop_owner'].includes(req.user.role);
-    if (isShopOwnerRole) {
+
+    // Customer Authorization check: Customers can only cancel their own active orders
+    if (isCustomer) {
+      if (order.customerEmail !== req.user.email) {
+        return res.status(403).json({ message: 'Not authorized to update this order' });
+      }
+      if (status !== 'Cancelled') {
+        return res.status(403).json({ message: 'Customers can only cancel their orders' });
+      }
+      if (!['Pending', 'Confirmed', 'Preparing'].includes(order.status)) {
+        return res.status(400).json({ message: `Cannot cancel order after it has been picked up or dispatched (Current: ${order.status})` });
+      }
+    } else if (isShopOwnerRole) {
+      // Check authorization: Owners/Pharmacies can only update status of orders belonging to their shop
       const orderPharmacyId = order.pharmacyId?._id?.toString() || order.pharmacyId?.toString();
       if (!req.user.shopCode || orderPharmacyId !== req.user.shopCode.toString()) {
         return res.status(403).json({ message: 'Not authorized to update orders for another pharmacy' });
@@ -257,7 +270,7 @@ router.patch('/:id', protect, authorize('admin', 'owner', 'pharmacy', 'vendor', 
     }
 
     // State Machine Validation: ensure status transition is valid
-    if (status) {
+    if (status && !isCustomer) {
       const allStatuses = Object.keys(VALID_TRANSITIONS);
       if (!allStatuses.includes(status)) {
         return res.status(400).json({ message: `Invalid order status: '${status}'` });
@@ -270,11 +283,20 @@ router.patch('/:id', protect, authorize('admin', 'owner', 'pharmacy', 'vendor', 
         });
       }
 
-      // Pharmacy owners can only advance up to 'Ready'
+      // Pharmacy owners can only advance up to 'Ready' or Cancel
       if (isShopOwnerRole && !['Confirmed', 'Preparing', 'Ready', 'Cancelled'].includes(status)) {
         return res.status(403).json({
           message: `Pharmacy owners can only set status to: Confirmed, Preparing, Ready, or Cancelled`
         });
+      }
+    }
+
+    // If order is cancelled, restore medicine stock
+    if (status === 'Cancelled' && order.status !== 'Cancelled') {
+      for (const item of order.items) {
+        try {
+          await Medicine.findByIdAndUpdate(item.medicine, { $inc: { stock: item.quantity } });
+        } catch (e) {}
       }
     }
 

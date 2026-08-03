@@ -130,6 +130,20 @@ export default function OrderTrackingPage() {
   const pickupCoords = getPickupCoords(order);
   const deliveryCoords = getDeliveryCoords(order);
 
+  const handleCancelOrder = async () => {
+    if (!order) return;
+    if (!window.confirm('Are you sure you want to cancel this order?')) return;
+    try {
+      const orderId = order.id || (order as any)._id;
+      setOrderDetails((prev: any) => prev ? { ...prev, status: 'Cancelled' } : null);
+      await api.patch(`/orders/${orderId}`, { status: 'Cancelled' });
+    } catch (err: any) {
+      console.error('Failed to cancel order:', err);
+    }
+  };
+
+  const canCancel = order && ['Pending', 'Confirmed', 'Preparing'].includes(order.status);
+
   return (
     <div className="container py-10">
       {showArrivingBanner && (
@@ -146,13 +160,23 @@ export default function OrderTrackingPage() {
 
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="font-display font-bold text-3xl">{order.id || (order as any)._id}</h1>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="font-display font-bold text-3xl">#{(order.id || (order as any)._id || '').slice(-6).toUpperCase()}</h1>
             <Badge className="bg-primary/10 text-primary border-primary/30 border">
               {order.status}
             </Badge>
+            {canCancel && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCancelOrder}
+                className="rounded-full text-xs font-semibold text-red-600 border-red-500/30 hover:bg-red-500/10 hover:border-red-500/50 h-8 px-3"
+              >
+                Cancel Order
+              </Button>
+            )}
           </div>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-xs">
             Placed {new Date(order.createdAt).toLocaleString()}
           </p>
         </div>
