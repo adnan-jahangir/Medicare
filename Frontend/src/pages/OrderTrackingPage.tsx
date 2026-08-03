@@ -66,46 +66,54 @@ export default function OrderTrackingPage() {
   };
 
   // Fetch full order details from backend
+  const fetchOrder = async () => {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const response = await api.get(`/orders/${id}`);
+      if (response.data.success) {
+        const data = response.data.data;
+        // Normalize _id to id for items
+        if (data.items) {
+          data.items = data.items.map((it: any) => ({
+            ...(it || {}),
+            medicine: it?.medicine
+              ? { ...it.medicine, id: it.medicine._id || it.medicine.id }
+              : null,
+          }));
+        }
+        setOrderDetails({
+          ...data,
+          id: data._id || data.id,
+          driverProgress: data.driverProgress || 0,
+          pickup: data.pickup || [0, 0],
+          destination: data.destination || [0, 0],
+          deliveryAddress: data.deliveryAddress || null,
+          createdAt: data.createdAt ? new Date(data.createdAt).getTime() : Date.now(),
+          updatedAt: data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now(),
+        });
+      }
+    } catch (err: any) {
+      console.error('Error fetching order:', err);
+      if (!localOrder) {
+        setError('Order not found');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchOrder = async () => {
-      if (!id) {
-        setLoading(false);
-        return;
-      }
-      try {
-        const response = await api.get(`/orders/${id}`);
-        if (response.data.success) {
-          const data = response.data.data;
-          // Normalize _id to id for items
-          if (data.items) {
-            data.items = data.items.map((it: any) => ({
-              ...(it || {}),
-              medicine: it?.medicine
-                ? { ...it.medicine, id: it.medicine._id || it.medicine.id }
-                : null,
-            }));
-          }
-          setOrderDetails({
-            ...data,
-            id: data._id || data.id,
-            driverProgress: data.driverProgress || 0,
-            pickup: data.pickup || [0, 0],
-            destination: data.destination || [0, 0],
-            deliveryAddress: data.deliveryAddress || null,
-            createdAt: data.createdAt ? new Date(data.createdAt).getTime() : Date.now(),
-            updatedAt: data.updatedAt ? new Date(data.updatedAt).getTime() : Date.now(),
-          });
-        }
-      } catch (err: any) {
-        console.error('Error fetching order:', err);
-        if (!localOrder) {
-          setError('Order not found');
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchOrder();
+
+    // Auto re-fetch every 4 seconds while order is active to ensure instant driver assignment & status sync
+    const interval = setInterval(() => {
+      fetchOrder();
+    }, 4000);
+
+    return () => clearInterval(interval);
   }, [id]);
 
   // Loading state
