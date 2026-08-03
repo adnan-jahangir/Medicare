@@ -5,17 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { CreditCard, Banknote, Lock, Loader2, Phone, Mail, User, MapPin, ExternalLink, ShieldCheck, ArrowRight } from 'lucide-react';
+import { CreditCard, Banknote, Lock, Loader2, Phone, Mail, User, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { CheckoutMapPicker } from '@/components/CheckoutMapPicker';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
 
 export default function CheckoutPage() {
   const { cart, medicines, clearCart, user } = useAppStore();
@@ -35,14 +28,6 @@ export default function CheckoutPage() {
   const [processing, setProcessing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [customerCoords, setCustomerCoords] = useState<{ lat: number; lng: number }>({ lat: 22.3624, lng: 91.8023 });
-  
-  // Payment Modal State for Direct Gateway Selection
-  const [paymentModalData, setPaymentModalData] = useState<{
-    url: string;
-    methods?: { bkash?: string; nagad?: string; cards?: string; rocket?: string } | null;
-    orderId: string;
-  } | null>(null);
-
   const nav = useNavigate();
 
   useEffect(() => {
@@ -131,13 +116,9 @@ export default function CheckoutPage() {
 
             if (payResponse.data.success && payResponse.data.url) {
               clearCart();
-              // Open payment modal with direct methods
-              setPaymentModalData({
-                url: payResponse.data.url,
-                methods: payResponse.data.methods,
-                orderId
-              });
-              toast.success('Order created! Please select a payment option.');
+              toast.success('Redirecting to Aamarpay Sandbox...');
+              // Redirect directly to Aamarpay Sandbox Gateway
+              window.location.href = payResponse.data.url;
             } else {
               throw new Error(payResponse.data.message || 'Failed to initiate payment gateway');
             }
@@ -361,122 +342,6 @@ export default function CheckoutPage() {
           </div>
         </aside>
       </form>
-
-      {/* Interactive Payment Gateway Selector Modal */}
-      <Dialog open={!!paymentModalData} onOpenChange={(open) => { if (!open) setPaymentModalData(null); }}>
-        <DialogContent className="sm:max-w-md rounded-3xl p-6">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
-              <ShieldCheck className="h-6 w-6 text-emerald-600" /> Choose Payment Method
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground mt-1">
-              Select your preferred sandbox gateway method to test your order payment:
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 py-3">
-            {paymentModalData?.methods?.bkash && (
-              <a
-                href={paymentModalData.methods.bkash}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between p-3.5 rounded-2xl border border-pink-500/20 bg-pink-500/5 hover:bg-pink-500/10 transition-all font-semibold text-sm group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-pink-500/20 flex items-center justify-center font-bold text-pink-600 text-xs">
-                    ৳
-                  </div>
-                  <div>
-                    <span className="font-bold text-pink-600 block">bKash Sandbox</span>
-                    <span className="text-[11px] text-muted-foreground block font-normal">Test instant bKash payment</span>
-                  </div>
-                </div>
-                <ExternalLink className="h-4 w-4 text-pink-500 opacity-60 group-hover:opacity-100 transition-opacity" />
-              </a>
-            )}
-
-            {paymentModalData?.methods?.nagad && (
-              <a
-                href={paymentModalData.methods.nagad}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between p-3.5 rounded-2xl border border-orange-500/20 bg-orange-500/5 hover:bg-orange-500/10 transition-all font-semibold text-sm group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-orange-500/20 flex items-center justify-center font-bold text-orange-600 text-xs">
-                    ৳
-                  </div>
-                  <div>
-                    <span className="font-bold text-orange-600 block">Nagad Sandbox</span>
-                    <span className="text-[11px] text-muted-foreground block font-normal">Test instant Nagad payment</span>
-                  </div>
-                </div>
-                <ExternalLink className="h-4 w-4 text-orange-500 opacity-60 group-hover:opacity-100 transition-opacity" />
-              </a>
-            )}
-
-            {paymentModalData?.methods?.cards && (
-              <a
-                href={paymentModalData.methods.cards}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between p-3.5 rounded-2xl border border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10 transition-all font-semibold text-sm group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-blue-500/20 flex items-center justify-center font-bold text-blue-600 text-xs">
-                    💳
-                  </div>
-                  <div>
-                    <span className="font-bold text-blue-600 block">Visa / Mastercard Sandbox</span>
-                    <span className="text-[11px] text-muted-foreground block font-normal">Test instant card payment</span>
-                  </div>
-                </div>
-                <ExternalLink className="h-4 w-4 text-blue-500 opacity-60 group-hover:opacity-100 transition-opacity" />
-              </a>
-            )}
-
-            <div className="pt-2 border-t border-border/50">
-              <a
-                href={paymentModalData?.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-card hover:bg-accent transition-all font-semibold text-sm group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center text-xs">
-                    🌐
-                  </div>
-                  <div>
-                    <span className="font-bold block text-foreground">Main Aamarpay Portal</span>
-                    <span className="text-[11px] text-muted-foreground block font-normal">Click Mobile Banking tab on page</span>
-                  </div>
-                </div>
-                <ExternalLink className="h-4 w-4 text-muted-foreground opacity-60 group-hover:opacity-100 transition-opacity" />
-              </a>
-            </div>
-          </div>
-
-          <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3 text-[11px] text-amber-700 dark:text-amber-300 leading-normal">
-            💡 <strong>Sandbox Tip:</strong> Clicking <strong>bKash</strong>, <strong>Nagad</strong>, or <strong>Card</strong> will immediately open the payment simulator where you can click "Success" to test completed payment!
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const oid = paymentModalData?.orderId;
-                setPaymentModalData(null);
-                if (oid) nav(`/orders/${oid}`);
-              }}
-              className="rounded-full text-xs font-semibold"
-            >
-              Go to Order Details
-              <ArrowRight className="h-3.5 w-3.5 ml-1" />
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
