@@ -92,10 +92,24 @@ router.post('/initiate', protect, async (req: AuthRequest, res: Response) => {
       paymentUrl = `https://sandbox.aamarpay.com/paynow.php?track=${tranId}`;
     }
 
+    // Extract track ID for direct method navigation options
+    let trackId: string | null = null;
+    if (paymentUrl) {
+      const match = paymentUrl.match(/track=([A-Za-z0-9]+)/);
+      if (match) trackId = match[1];
+    }
+
     return res.json({
       success: true,
       url: paymentUrl,
-      tranId
+      tranId,
+      trackId,
+      methods: trackId ? {
+        bkash: `https://sandbox.aamarpay.com/process.php?track=${trackId}&type=14`,
+        nagad: `https://sandbox.aamarpay.com/process.php?track=${trackId}&type=31`,
+        cards: `https://sandbox.aamarpay.com/process.php?track=${trackId}&type=5`,
+        rocket: `https://sandbox.aamarpay.com/process.php?track=${trackId}&type=6`,
+      } : null
     });
   } catch (error: any) {
     console.error('[Aamarpay exception]', error.message);
