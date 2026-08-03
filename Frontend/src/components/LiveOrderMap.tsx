@@ -266,9 +266,19 @@ export function LiveOrderMap({
   initialStatus = 'Pending',
   className,
 }: LiveOrderMapProps) {
-  // ── Normalize coords ────────────────────────────────────────────────
-  const pickup = useMemo(() => normalize(pharmacyLocation), [pharmacyLocation]);
-  const dest = useMemo(() => normalize(deliveryLocation), [deliveryLocation]);
+  // ── Normalize coords with fallbacks ──────────────────────────────────
+  const rawPickup = useMemo(() => normalize(pharmacyLocation), [pharmacyLocation]);
+  const rawDest = useMemo(() => normalize(deliveryLocation), [deliveryLocation]);
+
+  const pickup = useMemo<[number, number]>(
+    () => (isValid(rawPickup) ? rawPickup : [22.3568, 91.7832]),
+    [rawPickup]
+  );
+  const dest = useMemo<[number, number]>(
+    () => (isValid(rawDest) ? rawDest : [22.3680, 91.8020]),
+    [rawDest]
+  );
+
   const pickupValid = isValid(pickup);
   const destValid = isValid(dest);
 

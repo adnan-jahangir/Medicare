@@ -214,7 +214,7 @@ router.get('/:id', protect, async (req: AuthRequest, res: Response) => {
     }
 
     // Check authorization
-    if (req.user.role === 'customer' && order.customerEmail !== req.user.email) {
+    if (req.user.role === 'customer' && order.customerEmail?.toLowerCase() !== req.user.email?.toLowerCase()) {
       return res.status(403).json({ message: 'Not authorized to view this order' });
     }
 
