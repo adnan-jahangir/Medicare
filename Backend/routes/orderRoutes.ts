@@ -131,8 +131,8 @@ router.get('/', protect, async (req: AuthRequest, res: Response) => {
     let query: any = {};
     
     if (req.user.role === 'customer') {
-      // Customers see only their orders
-      query.customerEmail = req.user.email;
+      // Customers see only their orders (case-insensitive email regex match)
+      query.customerEmail = new RegExp(`^${req.user.email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
     } else if (['owner', 'pharmacy', 'vendor', 'shop_owner'].includes(req.user.role)) {
       let rawPharmId = req.user.shopCode;
       let pharmacy = null;

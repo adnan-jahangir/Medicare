@@ -116,7 +116,8 @@ export default function OwnerOrders() {
   const fetchOrders = async () => {
     try {
       const res = await api.get('/orders');
-      setOrders(res.data.data || []);
+      const rawOrders = Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.data) ? res.data.data : []);
+      setOrders(rawOrders);
     } catch (err) {
       console.error('Failed to fetch orders:', err);
     } finally {
