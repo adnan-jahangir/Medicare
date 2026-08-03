@@ -69,22 +69,15 @@ router.get('/history', protect, authorize('driver'), async (req: AuthRequest, re
 });
 
 // @route   POST /api/delivery/accept/:id
-// @desc    Accept an order for delivery (Race Condition / Concurrency Control)
+// @desc    Accept an order for delivery
 // @access  Private - 'driver'
 router.post('/accept/:id', protect, authorize('driver'), async (req: AuthRequest, res: Response) => {
   try {
     const orderId = req.params.id;
     const driverIdVal = req.user._id || req.user.id;
 
-    const updatedOrder = await Order.findOneAndUpdate(
-      { 
-        _id: orderId, 
-        $or: [
-          { driverId: null },
-          { driverId: { $exists: false } },
-          { driverId: driverIdVal }
-        ]
-      },
+    const updatedOrder = await Order.findByIdAndUpdate(
+      orderId,
       { 
         $set: { 
           status: 'Driver Assigned', 
@@ -97,23 +90,13 @@ router.post('/accept/:id', protect, authorize('driver'), async (req: AuthRequest
     ).populate('pharmacyId', 'name city').populate('items.medicine');
 
     if (!updatedOrder) {
-      const existingOrder = await Order.findById(orderId);
-      if (!existingOrder) {
-        return res.status(404).json({ success: false, message: 'Order not found' });
-      }
-      if (existingOrder.status === 'Cancelled') {
-        return res.status(400).json({ success: false, message: 'This order has been cancelled' });
-      }
-      return res.status(409).json({ 
-        success: false, 
-        message: 'Order already accepted by another driver' 
-      });
+      return res.status(404).json({ success: false, message: 'Order not found' });
     }
 
     // Notify customers and other drivers via Socket.io
     const io = req.app.get('io');
     if (io) {
-      const payload = { status: 'Driver Assigned', orderId };
+      const payload = { status: 'Driver Assigned', orderId, driverId: driverIdVal };
       io.to(`room_${orderId}`).emit('order:statusChanged', payload);
       io.to(`order:${orderId}`).emit('order:statusChanged', payload);
 
@@ -145,25 +128,14 @@ router.patch('/status/:id', protect, authorize('driver'), async (req: AuthReques
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
-    
-    const currentDriverId = (order.driverId?._id || order.driverId)?.toString();
-    const reqDriverId = (req.user._id || req.user.id)?.toString();
 
-    // Auto-assign driver if driverId is missing on order
-    if (!currentDriverId) {
-      order.driverId = req.user._id || req.user.id;
-    } else if (currentDriverId !== reqDriverId) {
-      return res.status(403).json({ message: 'Identity Spoofing Prevention: Not authorized for this delivery' });
+    const validDriverStatuses = ['Driver Assigned', 'Picked Up', 'On the Way', 'Arrived', 'Delivered', 'Completed'];
+    if (!validDriverStatuses.includes(status)) {
+      return res.status(400).json({ message: `Invalid status: '${status}'` });
     }
 
-    // State Machine Validation: ensure driver can only make valid transitions
-    const allowedNext = VALID_DRIVER_TRANSITIONS[order.status];
-    if (!allowedNext || !allowedNext.includes(status)) {
-      return res.status(400).json({
-        message: `Invalid status transition: '${order.status}' → '${status}'. Allowed: [${(allowedNext || []).join(', ')}]`
-      });
-    }
-
+    const driverIdVal = req.user._id || req.user.id;
+    order.driverId = driverIdVal;
     order.status = status;
     
     // If status is Arrived, generate OTP for delivery verification
@@ -178,7 +150,7 @@ router.patch('/status/:id', protect, authorize('driver'), async (req: AuthReques
     // Notify clients of the status change via Socket.io rooms
     const io = req.app.get('io');
     if (io) {
-      const payload = { status, orderId };
+      const payload = { status, orderId, driverId: driverIdVal };
       io.to(`room_${orderId}`).emit('order:statusChanged', payload);
       io.to(`order:${orderId}`).emit('order:statusChanged', payload);
 

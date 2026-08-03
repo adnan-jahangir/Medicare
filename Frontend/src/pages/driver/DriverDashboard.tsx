@@ -197,14 +197,17 @@ export default function DriverDashboard() {
 
     // Optimistic UI Update
     setActiveOrder((prev: any) => prev ? { ...prev, status } : null);
-    toast.success(`Status: ${status}`);
 
     try {
       const res = await api.patch(`/delivery/status/${orderId}`, { status });
-      if (res.data?.data) setActiveOrder(res.data.data);
-    } catch (err) {
+      if (res.data?.data) {
+        setActiveOrder(res.data.data);
+        toast.success(`Status updated: ${status}`);
+      }
+    } catch (err: any) {
+      console.error('[Status update failed]', err);
+      toast.error(err.response?.data?.message || 'Status update failed');
       fetchData();
-      toast.error('Status update failed');
     }
   };
 
