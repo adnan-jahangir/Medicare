@@ -291,13 +291,34 @@ router.patch('/:id', protect, async (req: AuthRequest, res: Response) => {
       }
     }
 
-    // If order is cancelled, restore medicine stock
-    if (status === 'Cancelled' && order.status !== 'Cancelled') {
+    // If order is cancelled, restore medicine stock and completely delete/remove order document
+    if (status === 'Cancelled') {
       for (const item of order.items) {
         try {
           await Medicine.findByIdAndUpdate(item.medicine, { $inc: { stock: item.quantity } });
         } catch (e) {}
       }
+
+      await Order.findByIdAndDelete(req.params.id);
+
+      // Emit live status update to socket rooms so clients remove it
+      const io = req.app.get('io');
+      if (io) {
+        const orderId = req.params.id;
+        const payload = { status: 'Cancelled', orderId };
+        io.to(`room_${orderId}`).emit('order:statusChanged', payload);
+        io.to(`order:${orderId}`).emit('order:statusChanged', payload);
+        const pharmId = order.pharmacyId?._id?.toString() || order.pharmacyId?.toString();
+        if (pharmId) {
+          io.to(`pharmacy_${pharmId}`).emit('order:statusChanged', payload);
+        }
+      }
+
+      return res.json({
+        success: true,
+        message: 'Order cancelled and removed successfully',
+        data: { _id: req.params.id, status: 'Cancelled' }
+      });
     }
 
     const updateData: any = {};

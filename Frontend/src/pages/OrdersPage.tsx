@@ -92,7 +92,7 @@ export default function OrdersPage() {
     if (!window.confirm('Are you sure you want to cancel this order?')) return;
 
     try {
-      setOrders(prev => prev.map(o => (o._id === orderId || o.id === orderId) ? { ...o, status: 'Cancelled' } : o));
+      setOrders(prev => prev.filter(o => o._id !== orderId && o.id !== orderId));
       await api.patch(`/orders/${orderId}`, { status: 'Cancelled' });
     } catch (err: any) {
       console.error('Failed to cancel order:', err);

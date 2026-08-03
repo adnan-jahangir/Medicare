@@ -145,9 +145,9 @@ export default function OwnerOrders() {
   const handleCancel = async (orderId: string) => {
     if (!window.confirm('Are you sure you want to cancel this order?')) return;
     
-    // Optimistic UI Update
-    setOrders(prev => prev.map(o => (o._id === orderId || o.id === orderId) ? { ...o, status: 'Cancelled' } : o));
-    toast.success('Order cancelled');
+    // Optimistic UI Update - Remove cancelled order from state immediately
+    setOrders(prev => prev.filter(o => o._id !== orderId && o.id !== orderId));
+    toast.success('Order cancelled and removed');
 
     try {
       setUpdatingId(orderId);

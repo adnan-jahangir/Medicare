@@ -37,13 +37,7 @@ export const Header = () => {
         <NavLink to="/medicines" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? 'text-primary' : 'text-foreground/70'}`}>Medicines</NavLink>
       )}
       {user && user.role === 'customer' && (
-        <NavLink to="/dashboard" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? 'text-primary' : 'text-foreground/70'}`}>Dashboard</NavLink>
-      )}
-      {user && user.role === 'customer' && (
         <NavLink to="/orders" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? 'text-primary' : 'text-foreground/70'}`}>My Orders</NavLink>
-      )}
-      {isDriver && (
-        <NavLink to="/driver" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? 'text-primary' : 'text-foreground/70'}`}>Dashboard</NavLink>
       )}
       {!isDriver && (
         <NavLink to="/prescription" className={({ isActive }) => `text-sm font-medium transition-colors hover:text-primary ${isActive ? 'text-primary' : 'text-foreground/70'}`}>Upload Rx</NavLink>
