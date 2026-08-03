@@ -3,7 +3,7 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { useAppStore } from '@/store/useAppStore';
 import {
   Users, Building2, Pill, ShoppingBag, Trash2, Truck, Check, X,
-  ShieldAlert, ShieldCheck, Activity, Clock, ArrowRight, Sparkles, ChevronRight
+  ShieldAlert, ShieldCheck, Activity, Clock, ArrowRight, Sparkles, ChevronRight, Search
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
