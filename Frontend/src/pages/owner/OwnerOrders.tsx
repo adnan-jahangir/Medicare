@@ -126,12 +126,16 @@ export default function OwnerOrders() {
   };
 
   const handleStatusChange = async (orderId: string, status: OrderStatus) => {
+    // Optimistic UI Update: update UI state instantly (0ms) without waiting for network call
+    setOrders(prev => prev.map(o => (o._id === orderId || o.id === orderId) ? { ...o, status } : o));
+    toast.success(`Order #${(orderId).slice(-6).toUpperCase()} updated to '${status}'`);
+    
     try {
       setUpdatingId(orderId);
       await api.patch(`/orders/${orderId}`, { status });
-      setOrders(prev => prev.map(o => (o._id === orderId || o.id === orderId) ? { ...o, status } : o));
-      toast.success(`Order #${(orderId).slice(-6).toUpperCase()} updated to '${status}'`);
     } catch (err: any) {
+      // Revert / refresh state on failure
+      fetchOrders();
       toast.error(err.response?.data?.message || 'Failed to update status');
     } finally {
       setUpdatingId(null);
@@ -140,12 +144,16 @@ export default function OwnerOrders() {
 
   const handleCancel = async (orderId: string) => {
     if (!window.confirm('Are you sure you want to cancel this order?')) return;
+    
+    // Optimistic UI Update
+    setOrders(prev => prev.map(o => (o._id === orderId || o.id === orderId) ? { ...o, status: 'Cancelled' } : o));
+    toast.success('Order cancelled');
+
     try {
       setUpdatingId(orderId);
       await api.patch(`/orders/${orderId}`, { status: 'Cancelled' });
-      setOrders(prev => prev.map(o => (o._id === orderId || o.id === orderId) ? { ...o, status: 'Cancelled' } : o));
-      toast.success('Order cancelled');
     } catch (err: any) {
+      fetchOrders();
       toast.error(err.response?.data?.message || 'Failed to cancel order');
     } finally {
       setUpdatingId(null);

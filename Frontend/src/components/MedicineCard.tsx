@@ -7,6 +7,8 @@ import type { Medicine } from '@/lib/types';
 import { motion } from 'framer-motion';
 import { getMedicineImageUrl, handleMedicineImgError } from '@/lib/utils';
 
+import { toast } from 'sonner';
+
 interface Props { medicine: Medicine; index?: number }
 
 export const MedicineCard = ({ medicine, index = 0 }: Props) => {
@@ -63,7 +65,15 @@ export const MedicineCard = ({ medicine, index = 0 }: Props) => {
             </div>
           </div>
           {!isDriver && (
-            <Button size="sm" disabled={oos} onClick={() => addToCart(medicine.id)} className="rounded-full">
+            <Button
+              size="sm"
+              disabled={oos}
+              onClick={() => {
+                addToCart(medicine.id);
+                toast.success(`Added '${medicine.name}' to cart!`);
+              }}
+              className="rounded-full"
+            >
               <ShoppingCart className="h-4 w-4" />
             </Button>
           )}

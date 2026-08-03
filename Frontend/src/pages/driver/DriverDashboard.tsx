@@ -169,24 +169,36 @@ export default function DriverDashboard() {
   };
 
   const acceptOrder = async (id: string) => {
+    // Optimistic UI Update: snap immediately
+    const target = availableOrders.find(o => (o._id || o.id) === id);
+    if (target) {
+      setActiveOrder({ ...target, status: 'Driver Assigned' });
+      setAvailableOrders(prev => prev.filter(o => (o._id || o.id) !== id));
+      toast.success('Order accepted! Head to pharmacy.');
+      startTracking(id);
+    }
     try {
       const res = await api.post(`/delivery/accept/${id}`);
-      setActiveOrder(res.data.data);
-      setAvailableOrders(prev => prev.filter(o => (o._id || o.id) !== id));
-      startTracking(id);
-      toast.success('Order accepted! Head to pharmacy.');
+      if (res.data?.data) setActiveOrder(res.data.data);
     } catch (err: any) {
+      fetchData();
       toast.error(err.response?.data?.message || 'Failed to accept order');
     }
   };
 
   const updateStatus = async (status: string) => {
+    const orderId = activeOrder?._id || activeOrder?.id;
+    if (!orderId) return;
+
+    // Optimistic UI Update
+    setActiveOrder((prev: any) => prev ? { ...prev, status } : null);
+    toast.success(`Status: ${status}`);
+
     try {
-      const orderId = activeOrder._id || activeOrder.id;
       const res = await api.patch(`/delivery/status/${orderId}`, { status });
-      setActiveOrder(res.data.data);
-      toast.success(`Status: ${status}`);
+      if (res.data?.data) setActiveOrder(res.data.data);
     } catch (err) {
+      fetchData();
       toast.error('Status update failed');
     }
   };
