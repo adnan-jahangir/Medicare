@@ -35,9 +35,7 @@ const GoogleIcon = () => (
 
 const PANEL_OPTIONS = [
   { id: 'customer', label: 'Customer', description: 'Browse medicines, place orders, and track delivery', icon: User, path: '/dashboard' },
-  { id: 'owner', label: 'Shop Owner', description: 'Manage shop inventory, medicines, and orders', icon: Building2, path: '/owner' },
   { id: 'driver', label: 'Driver', description: 'Manage deliveries, view routes, and update order status', icon: Pill, path: '/driver' },
-  { id: 'admin', label: 'Admin', description: 'System overview, user management, and approvals', icon: ShieldCheck, path: '/admin' },
 ] as const;
 
 export default function LoginPage() {
@@ -193,46 +191,9 @@ export default function LoginPage() {
 
                 <TabsContent value="login">
                   <h1 className="font-display font-bold text-3xl">Welcome back</h1>
-                  <p className="text-muted-foreground mt-1 mb-4">
-                    Sign in to open your {PANEL_OPTIONS.find((option) => option.id === panel)?.label.toLowerCase()} dashboard. 
+                  <p className="text-muted-foreground mt-1 mb-6">
+                    Sign in to open your account dashboard. 
                   </p>
-
-                  {/* Demo Credential Quick Fill Hints */}
-                  {panel === 'owner' && (
-                    <div className="mb-4 p-3 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between text-xs">
-                      <div>
-                        <span className="font-bold text-primary block">Shop Owner Demo Credentials:</span>
-                        <span className="text-muted-foreground font-mono">owner@medicare.com / owner123</span>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="h-7 text-[11px] font-bold rounded-lg"
-                        onClick={() => { setEmail('owner@medicare.com'); setPwd('owner123'); }}
-                      >
-                        Auto Fill
-                      </Button>
-                    </div>
-                  )}
-
-                  {panel === 'admin' && (
-                    <div className="mb-4 p-3 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between text-xs">
-                      <div>
-                        <span className="font-bold text-primary block">Admin Demo Credentials:</span>
-                        <span className="text-muted-foreground font-mono">admin@medicare.com / admin123</span>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="h-7 text-[11px] font-bold rounded-lg"
-                        onClick={() => { setEmail('admin@medicare.com'); setPwd('admin123'); }}
-                      >
-                        Auto Fill
-                      </Button>
-                    </div>
-                  )}
 
                   <form className="space-y-4" onSubmit={(e) => handleSubmit(e, 'login')}>
                     <div>
