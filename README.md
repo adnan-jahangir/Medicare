@@ -1,5 +1,9 @@
+<h1 align="center">💊 MediCare</h1>
+
+
+
 <p align="center">
-  <img src="https://img.shields.io/badge/React-18.3-61DAFB?style=for-the-badge&logo=react&logoColor=white" alt="React" />
+
   <img src="https://img.shields.io/badge/TypeScript-5.8-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Node.js-Express-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js" />
   <img src="https://img.shields.io/badge/MongoDB-Mongoose-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB" />
@@ -7,29 +11,18 @@
   <img src="https://img.shields.io/badge/Vite-5-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" />
 </p>
 
-<h1 align="center">💊 MediCare</h1>
 
 <p align="center">
   <strong>A full-stack pharmacy delivery platform with real-time GPS tracking, multi-role dashboards, and integrated payment processing.</strong>
 </p>
 
-<p align="center">
-  <a href="https://medicare-pharma.vercel.app/" target="_blank"><strong>🌐 Live Demo</strong></a> •
-  <a href="#-features">Features</a> •
-  <a href="#-tech-stack">Tech Stack</a> •
-  <a href="#-architecture">Architecture</a> •
-  <a href="#-getting-started">Getting Started</a> •
-  <a href="#-user-roles">User Roles</a> •
-  <a href="#-api-reference">API Reference</a> •
-  <a href="#-project-structure">Project Structure</a>
-</p>
 
 ---
 
 ## 🔗 Live Demo
 
 Experience the live application here:  
-👉 **[medicare-pharma.vercel.app](https://medicare-pharma.vercel.app/)**
+👉 <a href="https://medicare-pharma.vercel.app/" target="_blank"><strong>🌐 Live Demo</strong></a> 
 
 ---
 
