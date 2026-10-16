@@ -17,6 +17,7 @@
 </p>
 
 <p align="center">
+  <a href="https://medicare-pharma.vercel.app/" target="_blank"><strong>🌐 Live Demo</strong></a> •
   <a href="#-features">Features</a> •
   <a href="#-tech-stack">Tech Stack</a> •
   <a href="#-architecture">Architecture</a> •
@@ -28,9 +29,16 @@
 
 ---
 
+## 🔗 Live Demo
+
+Experience the live application here:  
+👉 **[https://medicare-pharma.vercel.app](https://medicare-pharma.vercel.app/)**
+
+---
+
 ## 🚀 Quick Demo Logins
 
-Test all 4 distinct platform roles instantly without registration:
+Test all 4 distinct platform roles instantly on the live app without registration:
 
 | Role                   | Demo Email              | Password      | Access Dashboard | Key Features to Test                                                                |
 | :--------------------- | :---------------------- | :------------ | :--------------- | :---------------------------------------------------------------------------------- |
