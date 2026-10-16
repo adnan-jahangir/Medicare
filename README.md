@@ -28,6 +28,88 @@
 
 ---
 
+## 🚀 Quick Demo Logins
+
+Test all 4 distinct platform roles instantly without registration:
+
+| Role                   | Demo Email              | Password      | Access Dashboard | Key Features to Test                                                                |
+| :--------------------- | :---------------------- | :------------ | :--------------- | :---------------------------------------------------------------------------------- |
+| **💊 Pharmacy Owner**  | `owner@medicare.com`    | `owner123`    | `/owner`         | 20% Net Profit live analytics, New Orders pipeline, stock catalog management        |
+| **🚗 Delivery Driver** | `driver@medicare.com`   | `driver123`   | `/driver`        | Live GPS streaming, OTP verification celebration modal, ৳35 wallet credit           |
+| **🔐 System Admin**    | `admin@medicare.com`    | `admin123`    | `/admin`         | Platform oversight, driver approval, system-wide order & revenue tracking           |
+| **🛒 Customer**        | `customer@medicare.com` | `customer123` | `/dashboard`     | 1000+ medicines catalog, prescription upload, live Chittagong map delivery tracking |
+
+---
+
+## 🔄 End-to-End Real-Time Workflow
+
+MedeCare synchronizes **Customers**, **Pharmacy Owners**, and **Delivery Couriers** through a real-time event-driven state machine:
+
+```mermaid
+flowchart LR
+    subgraph STAGE1["🛒 1. Customer"]
+        C1["Browse 1000+ Meds<br/>or Upload Rx"] --> C2["Checkout<br/>COD / SSLCommerz"]
+    end
+
+    subgraph STAGE2["💊 2. Pharmacy"]
+        P1["'New Orders' Tab<br/>🔔 Socket.IO Alert"] --> P2["Verify &amp; Pack<br/>Status: Ready"]
+    end
+
+    subgraph STAGE3["🚗 3. Delivery Rider"]
+        D1["Accept Delivery<br/>Chittagong GPS"] --> D2["Live OSRM Route<br/>Proximity &lt; 300m"]
+    end
+
+    subgraph STAGE4["🔐 4. OTP Handshake"]
+        O1["Customer Shares<br/>4-Digit Secret OTP"] --> O2["Driver Inputs OTP<br/>Real-Time Verify"]
+    end
+
+    subgraph STAGE5["💰 5. Settlement"]
+        S1["🎉 Delivered<br/>Rider: +৳35 Wallet<br/>Owner: +20% Profit"]
+    end
+
+    C2 -->|"⚡ order:newOrder"| P1
+    P2 -->|"📡 Broadcast"| D1
+    D2 -->|"📍 Arrived"| O1
+    O2 -->|"✅ Verified"| S1
+
+    classDef c fill:#eff6ff,stroke:#3b82f6,stroke-width:2px,color:#1e40af,rx:10px
+    classDef p fill:#faf5ff,stroke:#a855f7,stroke-width:2px,color:#6b21a8,rx:10px
+    classDef d fill:#ecfeff,stroke:#06b6d4,stroke-width:2px,color:#0e7490,rx:10px
+    classDef o fill:#fefce8,stroke:#eab308,stroke-width:2px,color:#854d0e,rx:10px
+    classDef s fill:#ecfdf5,stroke:#10b981,stroke-width:2px,color:#065f46,rx:10px
+
+    class C1,C2 c
+    class P1,P2 p
+    class D1,D2 d
+    class O1,O2 o
+    class S1 s
+```
+
+### ⚡ 5-Stage Operational Pipeline
+
+| Stage | Actor | Real-Time Trigger | Status Transition | Outcome & Financial Split |
+| :---: | :--- | :--- | :--- | :--- |
+| **`01`** | **🛒 Customer** | `POST /api/orders` | `Pending` | Order placed with Chittagong GPS coordinates & items |
+| **`02`** | **💊 Pharmacy** | Socket `order:newOrder` | `Pending` ➔ `Confirmed` ➔ `Ready` | Lands in **"New Orders"** tab; inventory batch auto-deducted |
+| **`03`** | **🚗 Rider** | Broadcast `order:newAvailable` | `Ready` ➔ `Picked Up` ➔ `In Transit` | Live GPS streaming via Leaflet + Chittagong OSRM engine |
+| **`04`** | **🔐 Handshake** | Haversine `< 300m` Doorstep | `In Transit` ➔ `Arrived` | Customer reveals secret 4-digit OTP; zero-fraud verification |
+| **`05`** | **💰 Settlement**| Socket `order:completed` | `Arrived` ➔ `Delivered` | **+৳35.00** to Driver Wallet · **+20% Net Profit** to Owner |
+
+### ⚡ 2-Minute End-to-End Testing Guide
+
+Anyone testing the repository can verify the entire multi-role pipeline in **5 simple steps**:
+
+| Stage  | Action                   | Role & Dashboard           | What Happens in Real Time                                                                             |
+| :----: | :----------------------- | :------------------------- | :---------------------------------------------------------------------------------------------------- |
+| **1**  | **Place Order**          | `Customer` (`/dashboard`)  | Select any medicine (e.g., _Napa Extra_), choose _Cash on Delivery_, and checkout.                    |
+| **2**  | **Fulfill Prescription** | `Owner` (`/owner/orders`)  | Order instantly rings in **"New Orders"** tab. Click **"Accept"** → **"Prepare"** → **"Mark Ready"**. |
+| **3**  | **Accept Delivery**      | `Driver` (`/driver`)       | Delivery broadcast alert arrives. Click **"Accept Order"** and **"Pick Up"**.                         |
+| **4**  | **Live GPS Route**       | `Customer` (`/orders/:id`) | Open customer tracking view to watch live rider navigation along Chittagong roads.                    |
+| **5**  | **OTP Completion**       | `Driver` (`/driver`)       | Click **"Arrived"**, input customer's 4-digit OTP, and click **"Verify"**.                            |
+| **🎉** | **Result**               | _Instant Payout_           | Driver earns **+৳35.00** wallet credit; Owner dashboard receives **+20% Net Profit**!                 |
+
+---
+
 ## 🌟 Features
 
 ### 🛒 Customer Experience
