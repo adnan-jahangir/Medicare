@@ -15,6 +15,8 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
+import { parseChittagongCoords, CHITTAGONG_MAP_CONFIG } from '@/lib/chittagongMap';
+
 interface Props {
   orderId: string;
   pickup: any;        // Could be [lng, lat], {lat, lng}, or contain strings
@@ -25,7 +27,7 @@ interface Props {
   routeCoords?: [number, number][];
 }
 
-const CHITTAGONG_FALLBACK: [number, number] = [22.3568, 91.7832];
+const CHITTAGONG_FALLBACK: [number, number] = [22.3592, 91.8215];
 
 // ─── Coordinate Helpers ──────────────────────────────────────────────
 
@@ -35,16 +37,9 @@ const toNum = (v: any): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
-/** Parse any coordinate shape into a [lat, lng] tuple with Number() coercion */
+/** Parse any coordinate shape into a [lat, lng] tuple strictly within Chittagong */
 const getCoords = (coord: any): [number, number] => {
-  if (Array.isArray(coord)) {
-    // Convention: arrays are [lng, lat] (GeoJSON / Mongo style)
-    return [toNum(coord[1]), toNum(coord[0])];
-  }
-  if (coord && typeof coord === 'object') {
-    return [toNum(coord.lat), toNum(coord.lng)];
-  }
-  return [0, 0];
+  return parseChittagongCoords(coord);
 };
 
 /** Check if a [lat, lng] pair represents a real location (not 0,0 placeholder) */
@@ -262,6 +257,10 @@ export const LiveDeliveryMap = ({ orderId, pickup, destination, deliveryAddress,
         center={initialCenter}
         zoom={13}
         style={{ height: '100%', width: '100%' }}
+        minZoom={CHITTAGONG_MAP_CONFIG.minZoom}
+        maxZoom={CHITTAGONG_MAP_CONFIG.maxZoom}
+        maxBounds={CHITTAGONG_MAP_CONFIG.bounds}
+        maxBoundsViscosity={1.0}
         zoomControl={true}
         className="z-0"
       >
@@ -274,8 +273,10 @@ export const LiveDeliveryMap = ({ orderId, pickup, destination, deliveryAddress,
         )}
 
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; Google Maps'
+          url="https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+          subdomains={['0', '1', '2', '3']}
+          maxZoom={20}
         />
 
         {/* Driver Trail (Recent History) */}

@@ -14,6 +14,15 @@ import {
 import { lazy, Suspense } from 'react';
 import api from '@/lib/api';
 import { EditProfileDialog } from '@/components/EditProfileDialog';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 const LiveOrderMap = lazy(() =>
   import('@/components/LiveOrderMap').then((m) => ({ default: m.LiveOrderMap }))
@@ -27,6 +36,9 @@ export default function DriverDashboard() {
   const [completedOrders, setCompletedOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [otp, setOtp] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [deliverySuccessModalOpen, setDeliverySuccessModalOpen] = useState(false);
+  const [completedOrderSummary, setCompletedOrderSummary] = useState<any>(null);
   const [wallet, setWallet] = useState(0);
   const [isOnline, setIsOnline] = useState(true);
   const [activeTab, setActiveTab] = useState<'available' | 'history'>('available');
@@ -212,19 +224,56 @@ export default function DriverDashboard() {
   };
 
   const verifyOtp = async () => {
+    const trimmedOtp = otp.trim();
+    if (!trimmedOtp) {
+      toast.error('Please enter the 4-digit customer OTP');
+      return;
+    }
+    if (trimmedOtp.length !== 4) {
+      toast.error('OTP must be exactly 4 digits');
+      return;
+    }
+
+    if (!activeOrder) {
+      toast.error('No active order found');
+      return;
+    }
+
+    setIsVerifying(true);
     try {
       const orderId = activeOrder._id || activeOrder.id;
-      await api.post(`/delivery/verify-otp/${orderId}`, { otp });
-      toast.success('Delivery Completed! ৳35 added to wallet.');
+      const response = await api.post(`/delivery/verify-otp/${orderId}`, { otp: trimmedOtp });
+      const data = response.data?.data || {};
+
+      // Prepare summary for the celebration modal popup
+      setCompletedOrderSummary({
+        orderId: data.orderId || orderId,
+        customerName: data.customerName || activeOrder.customerName || 'Customer',
+        address: data.address || activeOrder.address || 'Chattogram Delivery Point',
+        total: data.total || activeOrder.total || 0,
+        paymentMethod: data.paymentMethod || activeOrder.paymentMethod || 'Online Payment',
+        walletCredited: data.walletCredited || 35,
+      });
+
+      // Show the Celebration Popup Dialog!
+      setDeliverySuccessModalOpen(true);
+      toast.success('🎉 Delivery Completed! ৳35 added to your wallet.');
+
       setActiveOrder(null);
       activeOrderIdRef.current = null;
       setOtp('');
       stopSimulation();
       if (watchIdRef.current) navigator.geolocation.clearWatch(watchIdRef.current);
-      setWallet(prev => prev + 35);
+      setWallet((prev) => prev + 35);
       fetchData();
-    } catch (err) {
-      toast.error('Invalid OTP');
+    } catch (err: any) {
+      console.error('[OTP verification error]', err);
+      const errorMsg =
+        err.response?.data?.message ||
+        'Invalid OTP. Please check the 4-digit code provided by the customer.';
+      toast.error(errorMsg);
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -578,12 +627,30 @@ export default function DriverDashboard() {
                       <Input 
                         placeholder="• • • •" 
                         maxLength={4} 
-                        className="text-center text-2xl h-14 font-mono tracking-[0.5em] border-2"
+                        className="text-center text-2xl h-14 font-mono tracking-[0.5em] border-2 focus-visible:ring-emerald-500 font-black"
                         value={otp}
+                        disabled={isVerifying}
                         onChange={(e) => setOtp(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') verifyOtp();
+                        }}
                       />
-                      <Button onClick={verifyOtp} className="h-14 px-6 font-bold bg-emerald-600 hover:bg-emerald-700 rounded-xl">
-                        <CheckCircle2 className="mr-2" /> Verify
+                      <Button 
+                        onClick={verifyOtp} 
+                        disabled={isVerifying || otp.trim().length === 0}
+                        className="h-14 px-7 font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md shrink-0 flex items-center gap-2 transition-all active:scale-95"
+                      >
+                        {isVerifying ? (
+                          <>
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                            <span>Verifying...</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="h-5 w-5" />
+                            <span>Verify OTP</span>
+                          </>
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -754,6 +821,83 @@ export default function DriverDashboard() {
           </ul>
         </Card>
       </div>
+
+      {/* Delivery Success Celebration Modal Popup */}
+      <Dialog open={deliverySuccessModalOpen} onOpenChange={setDeliverySuccessModalOpen}>
+        <DialogContent className="max-w-md rounded-3xl p-6 text-center animate-in zoom-in-95 duration-200 border-2 border-emerald-500/20 shadow-2xl">
+          <div className="mx-auto h-20 w-20 rounded-full bg-emerald-500/10 border-4 border-emerald-500/20 flex items-center justify-center mb-3">
+            <CheckCircle2 className="h-10 w-10 text-emerald-600 animate-bounce" />
+          </div>
+
+          <DialogHeader className="text-center sm:text-center">
+            <DialogTitle className="text-2xl font-display font-black text-foreground">
+              Delivery Completed! 🎉
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground mt-1">
+              সফলভাবে কাস্টমারকে মেডিসিন ডেলিভারি সম্পন্ন হয়েছে
+            </DialogDescription>
+          </DialogHeader>
+
+          {completedOrderSummary && (
+            <div className="my-4 space-y-3 text-left">
+              {/* Earnings Credited Banner */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/15 to-teal-500/10 border border-emerald-500/25 text-center shadow-xs">
+                <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 block uppercase tracking-wider">
+                  Wallet Earnings Credited
+                </span>
+                <span className="text-4xl font-display font-black text-emerald-600 my-1 block">
+                  +৳{completedOrderSummary.walletCredited || 35}.00
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  Current Wallet Balance: <strong className="text-foreground">৳{wallet}</strong>
+                </span>
+              </div>
+
+              {/* COD Cash Collection Notice */}
+              {completedOrderSummary.paymentMethod === 'Cash on Delivery' && (
+                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-900 dark:text-amber-200 text-xs font-semibold flex items-center gap-2.5">
+                  <DollarSign className="h-5 w-5 text-amber-600 shrink-0" />
+                  <div>
+                    <span className="block font-bold">Cash on Delivery (COD)</span>
+                    <span>Please collect <strong className="text-foreground font-black">৳{completedOrderSummary.total}</strong> in cash from the customer</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Order Info Breakdown */}
+              <div className="p-3.5 rounded-2xl bg-muted/40 border border-border/70 text-xs space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Order ID:</span>
+                  <span className="font-mono font-bold text-foreground">
+                    #{(completedOrderSummary.orderId || '').slice(-6).toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Customer:</span>
+                  <span className="font-semibold text-foreground">
+                    {completedOrderSummary.customerName}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Location:</span>
+                  <span className="font-medium text-foreground truncate max-w-[210px]">
+                    {completedOrderSummary.address}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="mt-2 sm:justify-center">
+            <Button
+              onClick={() => setDeliverySuccessModalOpen(false)}
+              className="w-full h-12 text-base font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md transition-all active:scale-95"
+            >
+              Great! Back to Deliveries
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

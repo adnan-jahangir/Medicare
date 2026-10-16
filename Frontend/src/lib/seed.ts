@@ -1,9 +1,9 @@
 import type { Medicine, Pharmacy, Order } from './types';
 
 export const PHARMACIES: Pharmacy[] = [
-  { id: 'ph_1', name: 'GreenLeaf Pharmacy', city: 'New York', rating: 4.8, ownerName: 'Dr. Amelia Cole', monthlyRevenue: 48230 },
-  { id: 'ph_2', name: 'CityMed Express', city: 'Brooklyn', rating: 4.6, ownerName: 'Dr. Marcus Reyes', monthlyRevenue: 36120 },
-  { id: 'ph_3', name: 'WellPath Drugs', city: 'Queens', rating: 4.7, ownerName: 'Dr. Sara Patel', monthlyRevenue: 41980 },
+  { id: 'ph_1', name: 'Chattogram Central Pharma (GEC)', city: 'Chattogram', rating: 4.9, ownerName: 'Dr. Rafiqul Islam', monthlyRevenue: 85230 },
+  { id: 'ph_2', name: 'Agrabad Health Hub', city: 'Chattogram', rating: 4.7, ownerName: 'Dr. Tanvir Chowdhury', monthlyRevenue: 64120 },
+  { id: 'ph_3', name: 'Panchlaish MediCare Drugs', city: 'Chattogram', rating: 4.8, ownerName: 'Dr. Sara Begum', monthlyRevenue: 72980 },
 ];
 
 const img = (q: string) =>
@@ -24,9 +24,9 @@ export const MEDICINES: Medicine[] = [
   { id: 'm12', name: 'Aspirin', brand: 'Bayer', strength: '81mg', dosage: '1 tablet daily', description: 'Low-dose aspirin for cardiovascular protection.', category: 'Heart', price: 4.5, stock: 200, image: img('photo-1471864190281-a93a3070b6de'), prescriptionRequired: false, pharmacyId: 'ph_3' },
 ];
 
-// NYC demo coordinates
-export const SAMPLE_PICKUP: [number, number] = [-73.9857, 40.7484]; // Empire State
-export const SAMPLE_DEST: [number, number] = [-73.9712, 40.7831];  // Upper East Side
+// Chittagong demo coordinates [lat, lng]
+export const SAMPLE_PICKUP: [number, number] = [22.3592, 91.8215]; // GEC Circle, Central Pharmacy, Chittagong
+export const SAMPLE_DEST: [number, number] = [22.3644, 91.8315];   // Panchlaish Medical Area, Chittagong
 
 export const SAMPLE_ORDERS: Order[] = [
   {

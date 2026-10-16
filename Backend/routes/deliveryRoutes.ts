@@ -183,17 +183,22 @@ router.post('/verify-otp/:id', protect, authorize('driver'), async (req: AuthReq
       return res.status(404).json({ message: 'Order not found' });
     }
     
-    // Identity Spoofing Protection
-    if (order.driverId?.toString() !== req.user._id.toString()) {
+    // Identity Spoofing Protection (if assigned to another driver)
+    if (order.driverId && order.driverId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Identity Spoofing Prevention: Not authorized for this delivery' });
     }
+    if (!order.driverId) {
+      order.driverId = req.user._id;
+    }
 
-    // Verify OTP
-    if (order.otp !== otp) {
-      return res.status(400).json({ message: 'Invalid OTP' });
+    // Verify OTP safely
+    const cleanOtp = String(otp || '').trim();
+    const storedOtp = String(order.otp || '').trim();
+    if (!cleanOtp || storedOtp !== cleanOtp) {
+      return res.status(400).json({ message: 'Invalid OTP. Please check the 4-digit code with the customer.' });
     }
     if (order.otpExpiresAt && order.otpExpiresAt < new Date()) {
-      return res.status(400).json({ message: 'OTP expired' });
+      return res.status(400).json({ message: 'OTP has expired. Please refresh order.' });
     }
 
     // Update status to Completed
@@ -209,23 +214,78 @@ router.post('/verify-otp/:id', protect, authorize('driver'), async (req: AuthReq
 
     console.log(`[Wallet Credited] Driver ${req.user.name} credited ৳35 for order #${orderId}`);
 
+    // Update Pharmacy revenue & owner wallet
+    let ownerProfit = Math.round((order.total * 0.20) * 100) / 100;
+    if (order.pharmacyId) {
+      await Pharmacy.findByIdAndUpdate(order.pharmacyId, {
+        $inc: { monthlyRevenue: order.total }
+      });
+
+      const pharmacyDoc = await Pharmacy.findById(order.pharmacyId);
+      const ownerUser = await User.findOne({
+        role: { $in: ['owner', 'pharmacy', 'vendor', 'shop_owner'] },
+        $or: [
+          { shopCode: order.pharmacyId.toString() },
+          { shopName: pharmacyDoc?.name }
+        ]
+      });
+
+      if (ownerUser) {
+        await User.findByIdAndUpdate(ownerUser._id, {
+          $inc: { wallet: ownerProfit }
+        });
+        console.log(`[Owner Wallet Credited] Owner ${ownerUser.name} credited ৳${ownerProfit} profit for order #${orderId}`);
+      }
+    }
+
     // Emit live status update and destroy tracking rooms
     const io = req.app.get('io');
     if (io) {
       const room1 = `room_${orderId}`;
       const room2 = `order:${orderId}`;
+      const pharmId = order.pharmacyId?.toString();
       
+      const completePayload = { 
+        status: 'Completed', 
+        orderId: order._id.toString(),
+        total: order.total,
+        profit: ownerProfit,
+        customerName: order.customerName
+      };
+
       // Notify customer of completion
-      io.to(room1).emit('order:statusChanged', { status: 'Completed' });
-      io.to(room2).emit('order:statusChanged', { status: 'Completed' });
+      io.to(room1).emit('order:statusChanged', completePayload);
+      io.to(room2).emit('order:statusChanged', completePayload);
+
+      // Notify pharmacy dashboard room!
+      if (pharmId) {
+        io.to(`pharmacy_${pharmId}`).emit('order:statusChanged', completePayload);
+        io.to(`pharmacy_${pharmId}`).emit('order:completed', completePayload);
+        io.to(`pharmacy_${pharmId}`).emit('dashboard:statsUpdated', completePayload);
+      }
+
+      // Notify admin dashboard room
+      io.to('admin').emit('order:statusChanged', completePayload);
+      io.to('admin').emit('dashboard:statsUpdated', completePayload);
       
-      // Destroy rooms by forcing all sockets to leave
+      // Destroy customer-driver tracking rooms by forcing all sockets to leave
       io.in(room1).socketsLeave(room1);
       io.in(room2).socketsLeave(room2);
       console.log(`[Socket tracking] Rooms ${room1} and ${room2} destroyed.`);
     }
 
-    res.json({ success: true, message: 'Delivery completed successfully! Wallet credited ৳35.' });
+    res.json({
+      success: true,
+      message: 'Delivery completed successfully! Wallet credited ৳35.',
+      data: {
+        orderId: order._id,
+        customerName: order.customerName,
+        address: order.address,
+        total: order.total,
+        paymentMethod: order.paymentMethod,
+        walletCredited: 35
+      }
+    });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

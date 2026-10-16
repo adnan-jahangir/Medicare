@@ -32,6 +32,12 @@ import L from 'leaflet';
 import { cn } from '@/lib/utils';
 import { useOrderSocket } from '@/hooks/useOrderSocket';
 import {
+  CHITTAGONG_MAP_CONFIG,
+  MAP_PROVIDERS,
+  parseChittagongCoords,
+  type MapTileProvider,
+} from '@/lib/chittagongMap';
+import {
   Truck,
   MapPin,
   Home,
@@ -41,6 +47,7 @@ import {
   Package,
   ChefHat,
   Navigation,
+  Layers,
 } from 'lucide-react';
 
 // Fix default Leaflet marker icon paths cleanly using CDN fallbacks
@@ -79,7 +86,7 @@ interface LiveOrderMapProps {
 
 // ─── Constants ──────────────────────────────────────────────────────────
 
-const FALLBACK_CENTER: [number, number] = [22.3568, 91.7832]; // Chittagong
+const FALLBACK_CENTER: [number, number] = [22.3592, 91.8215]; // Chittagong GEC Circle
 const LERP_DURATION_MS = 400; // animation duration per location update (matches fast updates)
 const LERP_STEP_MS = 16; // ~60 fps
 const TRAIL_MAX_LENGTH = 30;
@@ -93,14 +100,9 @@ const toNum = (v: unknown): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
-/** Normalize any coord shape to [lat, lng] */
+/** Normalize any coord shape to [lat, lng] strictly within Chittagong */
 const normalize = (c: LatLng | [number, number] | null | undefined): [number, number] => {
-  if (!c) return [0, 0];
-  if (Array.isArray(c)) {
-    // GeoJSON / Mongo convention: [lng, lat]
-    return [toNum(c[1]), toNum(c[0])];
-  }
-  return [toNum(c.lat), toNum(c.lng)];
+  return parseChittagongCoords(c);
 };
 
 const isValid = (c: [number, number]): boolean => c[0] !== 0 || c[1] !== 0;
@@ -271,16 +273,20 @@ export function LiveOrderMap({
   const rawDest = useMemo(() => normalize(deliveryLocation), [deliveryLocation]);
 
   const pickup = useMemo<[number, number]>(
-    () => (isValid(rawPickup) ? rawPickup : [22.3568, 91.7832]),
+    () => (isValid(rawPickup) ? rawPickup : [22.3592, 91.8215]),
     [rawPickup]
   );
   const dest = useMemo<[number, number]>(
-    () => (isValid(rawDest) ? rawDest : [22.3680, 91.8020]),
+    () => (isValid(rawDest) ? rawDest : [22.3644, 91.8315]),
     [rawDest]
   );
 
   const pickupValid = isValid(pickup);
   const destValid = isValid(dest);
+
+  // ── Map Layer State ─────────────────────────────────────────────────
+  const [selectedLayer, setSelectedLayer] = useState<keyof typeof MAP_PROVIDERS>('google-streets');
+  const activeProvider: MapTileProvider = MAP_PROVIDERS[selectedLayer] || MAP_PROVIDERS['google-streets'];
 
   // ── Socket hook — manages connection, room, listeners, cleanup ──────
   const {
@@ -480,13 +486,20 @@ export function LiveOrderMap({
       <MapContainer
         center={center}
         zoom={14}
+        minZoom={CHITTAGONG_MAP_CONFIG.minZoom}
+        maxZoom={CHITTAGONG_MAP_CONFIG.maxZoom}
+        maxBounds={CHITTAGONG_MAP_CONFIG.bounds}
+        maxBoundsViscosity={1.0}
         style={{ height: '100%', width: '100%', minHeight: 420 }}
         zoomControl={true}
         className="z-0"
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          key={activeProvider.id}
+          attribution={activeProvider.attribution}
+          url={activeProvider.url}
+          subdomains={activeProvider.subdomains || []}
+          maxZoom={activeProvider.maxZoom}
         />
 
         {/* Auto-fit bounds to all markers */}
@@ -517,8 +530,8 @@ export function LiveOrderMap({
         {isValid(driverPos) && <SmoothDriverMarker target={driverPos} />}
       </MapContainer>
 
-      {/* ─── Top-left: Connection status pill ───────────────────────── */}
-      <div className="absolute top-3 left-3 z-[1000] flex flex-col gap-2">
+      {/* ─── Top-left: Connection status pill & Map Layer Switcher ── */}
+      <div className="absolute top-3 left-3 z-[1000] flex flex-wrap items-center gap-2">
         <div className="pill bg-card/90 backdrop-blur-md shadow-sm">
           {isConnected ? (
             <>
@@ -532,6 +545,43 @@ export function LiveOrderMap({
               <span className="text-xs font-semibold text-amber-600">Reconnecting…</span>
             </>
           )}
+        </div>
+
+        {/* Map Type Switcher */}
+        <div className="flex items-center bg-card/90 backdrop-blur-md p-0.5 rounded-lg border border-border/60 text-[10px] shadow-sm">
+          <button
+            type="button"
+            onClick={() => setSelectedLayer('google-streets')}
+            className={`px-2 py-0.5 rounded font-medium transition-all ${
+              selectedLayer === 'google-streets'
+                ? 'bg-primary text-primary-foreground font-semibold'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Google Map
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedLayer('google-satellite')}
+            className={`px-2 py-0.5 rounded font-medium transition-all ${
+              selectedLayer === 'google-satellite'
+                ? 'bg-primary text-primary-foreground font-semibold'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Satellite
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedLayer('osm')}
+            className={`px-2 py-0.5 rounded font-medium transition-all ${
+              selectedLayer === 'osm'
+                ? 'bg-primary text-primary-foreground font-semibold'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            OSM
+          </button>
         </div>
       </div>
 

@@ -31,49 +31,83 @@ const isValidTransition = (from: string, to: string): boolean => {
 // @access  Private - 'customer'
 router.post('/', protect, authorize('customer'), async (req: AuthRequest, res: Response) => {
   try {
-    const { pharmacyId, items, total, destination, deliveryAddress, address, city, zip } = req.body;
+    const { pharmacyId, items, destination, deliveryAddress, address, city, zip } = req.body;
 
-    if (!items || items.length === 0) {
+    if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: 'Order must contain at least one item' });
     }
 
-    // Validate that all medicines exist and check stock
+    // 1. Validate items and calculate total securely on the server (Price Tampering Prevention)
+    let calculatedSubtotal = 0;
+    const validatedItems: { medicine: any; quantity: number }[] = [];
+
     for (const item of items) {
+      const qty = Number(item.quantity);
+      if (!Number.isInteger(qty) || qty <= 0) {
+        return res.status(400).json({ message: 'Item quantity must be a positive integer' });
+      }
+
       const medicine = await Medicine.findById(item.medicine);
       if (!medicine) {
         return res.status(404).json({ message: `Medicine ${item.medicine} not found` });
       }
-      if (medicine.stock < item.quantity) {
-        return res.status(400).json({ message: `Insufficient stock for ${medicine.name}` });
+
+      if (medicine.stock < qty) {
+        return res.status(400).json({ message: `Insufficient stock for ${medicine.name} (Available: ${medicine.stock})` });
       }
+
+      calculatedSubtotal += medicine.price * qty;
+      validatedItems.push({
+        medicine: medicine._id,
+        quantity: qty,
+      });
     }
 
-    // Retrieve pharmacy coordinates for order pickup location
+    const deliveryFee = calculatedSubtotal >= 25 ? 0 : 3.99;
+    const tax = calculatedSubtotal * 0.08;
+    const serverCalculatedTotal = Number((calculatedSubtotal + deliveryFee + tax).toFixed(2));
+
+    // Retrieve pharmacy coordinates for order pickup location (strictly Chittagong)
     const pharmacy = await Pharmacy.findById(pharmacyId);
-    let pickupLat = 22.3568; // Chittagong default
-    let pickupLng = 91.7832;
+    let pickupLat = 22.3592; // Chittagong GEC Circle default
+    let pickupLng = 91.8215;
     if (pharmacy) {
       const loc = (pharmacy as any).location;
-      if (loc && typeof loc.lat === 'number' && typeof loc.lng === 'number') {
-        pickupLat = loc.lat;
-        pickupLng = loc.lng;
-      } else if (pharmacy.city === 'Karachi') {
-        pickupLat = 24.8607;
-        pickupLng = 67.0011;
-      } else if (pharmacy.city === 'New York') {
-        pickupLat = 40.7484;
-        pickupLng = -73.9857;
+      if (loc && typeof loc.lat === 'number' && typeof loc.lng === 'number' && loc.lat !== 0) {
+        if (loc.lat >= 22.0 && loc.lat <= 22.7 && loc.lng >= 91.5 && loc.lng <= 92.2) {
+          pickupLat = loc.lat;
+          pickupLng = loc.lng;
+        }
       }
     }
 
-    // Create order
+    // 2. Atomic stock deduction with rollback safety (Race Condition Prevention)
+    const deductedItems: { id: any; qty: number }[] = [];
+    for (const it of validatedItems) {
+      const updated = await Medicine.findOneAndUpdate(
+        { _id: it.medicine, stock: { $gte: it.quantity } },
+        { $inc: { stock: -it.quantity } },
+        { new: true }
+      );
+      if (!updated) {
+        // Rollback already deducted stocks
+        for (const done of deductedItems) {
+          await Medicine.findByIdAndUpdate(done.id, { $inc: { stock: done.qty } });
+        }
+        return res.status(400).json({ message: 'Stock changed during checkout, please try again' });
+      }
+      deductedItems.push({ id: it.medicine, qty: it.quantity });
+    }
+
+    // 3. Create order with server-calculated total
     const order = new Order({
       pharmacyId,
       customerEmail: req.user.email,
       customerName: req.body.customerName || req.user.name || '',
       customerPhone: req.body.customerPhone || req.user.phoneNumber || '',
-      items,
-      total,
+      customerAddress: address ? `${address}, ${city || ''} (ZIP: ${zip || ''})` : req.user.address,
+      items: validatedItems,
+      total: serverCalculatedTotal,
       status: 'Pending',
       destination: {
         lat: destination?.lat || 0,
@@ -88,14 +122,6 @@ router.post('/', protect, authorize('customer'), async (req: AuthRequest, res: R
         lng: pickupLng
       }
     });
-
-    // Reduce medicine stock
-    for (const item of items) {
-      await Medicine.findByIdAndUpdate(
-        item.medicine,
-        { $inc: { stock: -item.quantity } }
-      );
-    }
 
     const savedOrder = await order.save();
     const populatedOrder = await savedOrder.populate('items.medicine');
@@ -291,7 +317,7 @@ router.patch('/:id', protect, async (req: AuthRequest, res: Response) => {
       }
     }
 
-    // If order is cancelled, restore medicine stock and completely delete/remove order document
+    // If order is cancelled, restore medicine stock and update status to Cancelled (Preserve audit history)
     if (status === 'Cancelled') {
       for (const item of order.items) {
         try {
@@ -299,9 +325,10 @@ router.patch('/:id', protect, async (req: AuthRequest, res: Response) => {
         } catch (e) {}
       }
 
-      await Order.findByIdAndDelete(req.params.id);
+      order.status = 'Cancelled';
+      await order.save();
 
-      // Emit live status update to socket rooms so clients remove it
+      // Emit live status update to socket rooms so clients update state
       const io = req.app.get('io');
       if (io) {
         const orderId = req.params.id;
@@ -316,8 +343,8 @@ router.patch('/:id', protect, async (req: AuthRequest, res: Response) => {
 
       return res.json({
         success: true,
-        message: 'Order cancelled and removed successfully',
-        data: { _id: req.params.id, status: 'Cancelled' }
+        message: 'Order cancelled successfully',
+        data: order
       });
     }
 

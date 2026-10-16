@@ -40,4 +40,30 @@ api.interceptors.request.use(
   }
 );
 
+// Response interceptor to handle session expiration (401 Unauthorized)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      try {
+        const persisted = localStorage.getItem('medicare-store');
+        if (persisted) {
+          const parsed = JSON.parse(persisted);
+          if (parsed.state && parsed.state.token) {
+            console.warn('[Session Expired] Clearing token and expired auth state');
+            parsed.state.user = null;
+            parsed.state.token = null;
+            parsed.state.role = 'customer';
+            localStorage.setItem('medicare-store', JSON.stringify(parsed));
+          }
+        }
+      } catch (e) {
+        console.error('Failed to clean session on 401:', e);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;
+

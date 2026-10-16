@@ -40,7 +40,7 @@ export const maskOrderPrivacy = (orderObj: any, userRole: string): any => {
     // 2. Preserve valid coordinates for active tracking maps
     // Ensure pickup and destination coordinates remain valid numbers so map rendering never drops to 0,0
     if (!order.pickup || typeof order.pickup.lat !== 'number' || order.pickup.lat === 0) {
-      order.pickup = { lat: 22.3568, lng: 91.7832 }; // Fallback Chittagong
+      order.pickup = { lat: 22.3592, lng: 91.8215 }; // Fallback Chittagong GEC Circle
     }
   }
 

@@ -22,12 +22,12 @@ export default function CheckoutPage() {
   const [email, setEmail] = useState(user?.email || '');
   const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || '');
   const [address, setAddress] = useState('');
-  const [city, setCity] = useState('');
+  const [city, setCity] = useState('Chattogram');
   const zip = '';
   const [method, setMethod] = useState<'online' | 'cod'>('online');
   const [processing, setProcessing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [customerCoords, setCustomerCoords] = useState<{ lat: number; lng: number }>({ lat: 22.3624, lng: 91.8023 });
+  const [customerCoords, setCustomerCoords] = useState<{ lat: number; lng: number }>({ lat: 22.3592, lng: 91.8215 });
   const nav = useNavigate();
 
   useEffect(() => {
@@ -229,7 +229,7 @@ export default function CheckoutPage() {
                     setAddress(e.target.value);
                     if (errors.address) setErrors(prev => ({ ...prev, address: '' }));
                   }} 
-                  placeholder="House 12, Road 4, Sector 3" 
+                  placeholder="e.g. House 14, Road 2, Nasirabad / GEC, Chattogram" 
                   className={`mt-1.5 focus-visible:ring-primary ${errors.address ? 'border-red-500 focus-visible:ring-red-500' : 'border-border'}`} 
                 />
                 {errors.address && <p className="text-[11px] text-red-500 mt-1 font-medium">{errors.address}</p>}

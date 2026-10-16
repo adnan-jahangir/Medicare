@@ -18,19 +18,19 @@ const generateToken = (id: string, role: string) => {
   });
 };
 
-// Rate limiter for login to mitigate brute force
+// Rate limiter for login to mitigate brute force attacks
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Increased for development
-  message: { message: "Too many login attempts, please try again later" },
+  max: 30, // 30 attempts per 15 minutes to prevent brute-force
+  message: { message: "Too many login attempts, please try again after 15 minutes" },
 });
 
-// Joi validation schemas
+// Joi validation schemas (ADMIN is explicitly disallowed from public registration)
 const registerSchema = Joi.object({
   name: Joi.string().min(2).max(80).required(),
   email: Joi.string().email().required(),
   password: Joi.string().min(6).required(),
-  role: Joi.string().valid("customer", "owner", "admin", "driver", "pharmacy", "vendor", "shop_owner").optional(),
+  role: Joi.string().valid("customer", "owner", "driver", "pharmacy", "vendor", "shop_owner").optional(),
   shopCode: Joi.string().optional().allow('').empty(''),
   shopName: Joi.string().optional().allow('').empty(''),
   shopLocation: Joi.string().optional().allow('').empty(''),
@@ -63,6 +63,11 @@ router.post("/register", async (req: Request, res: Response) => {
     const { name, email, password, role, shopCode, shopName, shopLocation, shopLicense, vehicleType, licensePlate, nidNumber, zone, phoneNumber, address } =
       value as any;
 
+    // Security Check: Disallow admin role creation through public registration
+    if (role === "admin" || (req.body.role && String(req.body.role).toLowerCase() === "admin")) {
+      return res.status(403).json({ message: "Admin accounts cannot be registered publicly." });
+    }
+
     // 1. Check if user exists
     const userExists = await User.findOne({ email });
     if (userExists) {
@@ -75,12 +80,14 @@ router.post("/register", async (req: Request, res: Response) => {
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
 
-    // 3. Create User
+    const assignedRole = role || "customer";
+
+    // 3. Create User (Drivers require admin approval before dispatching)
     const user = await User.create({
       name,
       email,
       password_hash,
-      role: role || "customer",
+      role: assignedRole,
       shopCode,
       shopName,
       shopLocation,
@@ -92,7 +99,7 @@ router.post("/register", async (req: Request, res: Response) => {
       licensePlate,
       nidNumber,
       zone,
-      isApproved: true
+      isApproved: assignedRole === 'driver' ? false : true
     });
 
     // 4. Return successful response with token
@@ -211,6 +218,85 @@ router.post("/login", loginLimiter, async (req: Request, res: Response) => {
           shopCode: ownerUser.shopCode,
           shopName: ownerUser.shopName,
           token: generateToken(ownerUser._id.toString(), ownerUser.role),
+        },
+      });
+    }
+
+    // Driver static demo login
+    const driverEmail = (process.env.DRIVER_EMAIL || 'driver@medicare.com').trim().toLowerCase();
+    const driverPassword = process.env.DRIVER_PASSWORD || 'driver123';
+
+    if (inputEmail === driverEmail && password === driverPassword) {
+      let driverUser = await User.findOne({ email: driverEmail });
+      if (!driverUser) {
+        const salt = await bcrypt.genSalt(10);
+        const password_hash = await bcrypt.hash(password, salt);
+        driverUser = await User.create({
+          name: "MedeCare Courier",
+          email: driverEmail,
+          password_hash,
+          role: "driver",
+          vehicleType: "Motorbike",
+          phoneNumber: "+8801812345678",
+          licensePlate: "CTG-HA-5678",
+          nidNumber: "1997234567890",
+          zone: "Chittagong Central",
+          isApproved: true,
+          wallet: 150
+        });
+      } else {
+        driverUser.isApproved = true;
+      }
+      driverUser.last_login = new Date();
+      await driverUser.save();
+
+      return res.json({
+        success: true,
+        message: "Driver login successful",
+        data: {
+          id: driverUser._id.toString(),
+          _id: driverUser._id,
+          name: driverUser.name,
+          email: driverUser.email,
+          role: driverUser.role,
+          wallet: driverUser.wallet,
+          token: generateToken(driverUser._id.toString(), driverUser.role),
+        },
+      });
+    }
+
+    // Customer static demo login
+    const customerEmail = (process.env.CUSTOMER_EMAIL || 'customer@medicare.com').trim().toLowerCase();
+    const customerPassword = process.env.CUSTOMER_PASSWORD || 'customer123';
+
+    if (inputEmail === customerEmail && password === customerPassword) {
+      let customerUser = await User.findOne({ email: customerEmail });
+      if (!customerUser) {
+        const salt = await bcrypt.genSalt(10);
+        const password_hash = await bcrypt.hash(password, salt);
+        customerUser = await User.create({
+          name: "Demo Customer",
+          email: customerEmail,
+          password_hash,
+          role: "customer",
+          phoneNumber: "+8801712345678",
+          address: "GEC Circle, Chittagong",
+          wallet: 0
+        });
+      }
+      customerUser.last_login = new Date();
+      await customerUser.save();
+
+      return res.json({
+        success: true,
+        message: "Customer login successful",
+        data: {
+          id: customerUser._id.toString(),
+          _id: customerUser._id,
+          name: customerUser.name,
+          email: customerUser.email,
+          role: customerUser.role,
+          token: generateToken(customerUser._id.toString(), customerUser.role),
         },
       });
     }

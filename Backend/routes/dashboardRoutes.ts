@@ -14,10 +14,10 @@ router.get('/admin', protect, authorize('admin'), async (req: AuthRequest, res: 
     const totalPharmacies = await Pharmacy.countDocuments();
     const totalMedicines = await Medicine.countDocuments();
     const totalOrders = await Order.countDocuments();
-    const deliveredOrders = await Order.countDocuments({ status: 'Delivered' });
+    const deliveredOrders = await Order.countDocuments({ status: { $in: ['Delivered', 'Completed'] } });
     
     const totalRevenue = await Order.aggregate([
-      { $match: { status: 'Delivered' } },
+      { $match: { status: { $in: ['Delivered', 'Completed'] } } },
       { $group: { _id: null, total: { $sum: '$total' } } }
     ]);
 
@@ -90,18 +90,50 @@ router.get('/owner', protect, authorize('owner', 'pharmacy', 'vendor', 'shop_own
 
     const totalMedicines = await Medicine.countDocuments({ pharmacyId: queryPharmId });
     const totalOrders = await Order.countDocuments({ pharmacyId: queryPharmId });
-    const deliveredOrders = await Order.countDocuments({ pharmacyId: queryPharmId, status: 'Delivered' });
+    const deliveredOrders = await Order.countDocuments({ 
+      pharmacyId: queryPharmId, 
+      status: { $in: ['Delivered', 'Completed'] } 
+    });
     const pendingOrders = await Order.countDocuments({ 
       pharmacyId: queryPharmId, 
       status: { $in: ['Pending', 'Confirmed', 'Preparing', 'Ready'] } 
     });
+    const inTransitOrders = await Order.countDocuments({ 
+      pharmacyId: queryPharmId, 
+      status: { $in: ['Driver Assigned', 'Picked Up', 'On the Way', 'Arrived'] } 
+    });
 
-    const totalRevenue = await Order.aggregate([
+    // Realized Revenue from successful completed deliveries
+    const completedRevAgg = await Order.aggregate([
+      { $match: { pharmacyId: queryPharmId, status: { $in: ['Delivered', 'Completed'] } } },
+      { $group: { _id: null, total: { $sum: '$total' } } }
+    ]);
+    const completedRevenue = completedRevAgg[0]?.total || 0;
+
+    // Gross Revenue from all active non-cancelled orders
+    const grossRevAgg = await Order.aggregate([
       { $match: { pharmacyId: queryPharmId, status: { $ne: 'Cancelled' } } },
       { $group: { _id: null, total: { $sum: '$total' } } }
     ]);
+    const totalRevenue = grossRevAgg[0]?.total || 0;
+
+    // Net Profit Calculations (20% pharmacy profit margin on medicine sales)
+    const profitMargin = 0.20;
+    const netProfit = Math.round(completedRevenue * profitMargin * 100) / 100;
+    const pendingProfit = Math.round((totalRevenue - completedRevenue) * profitMargin * 100) / 100;
+    const totalEstimatedProfit = Math.round(totalRevenue * profitMargin * 100) / 100;
+
+    // Sync Pharmacy monthlyRevenue
+    if (pharmacy && pharmacy.monthlyRevenue !== completedRevenue) {
+      await Pharmacy.findByIdAndUpdate(pharmacy._id, { monthlyRevenue: completedRevenue });
+    }
+
+    // Owner Wallet Balance
+    const ownerUser = await User.findById(req.user._id);
+    const walletBalance = ownerUser?.wallet || netProfit;
 
     const recentOrders = await Order.find({ pharmacyId: queryPharmId })
+      .populate('items.medicine')
       .sort({ createdAt: -1 })
       .limit(6);
 
@@ -111,12 +143,17 @@ router.get('/owner', protect, authorize('owner', 'pharmacy', 'vendor', 'shop_own
     }).sort({ stock: 1 });
 
     const medicineStats = await Order.aggregate([
-      { $match: { pharmacyId } },
+      { $match: { pharmacyId: queryPharmId, status: { $in: ['Delivered', 'Completed'] } } },
       { $unwind: '$items' },
       { $group: { _id: '$items.medicine', totalSold: { $sum: '$items.quantity' } } },
       { $sort: { totalSold: -1 } },
       { $limit: 5 }
     ]);
+
+    const populatedMedStats = await Medicine.populate(medicineStats, {
+      path: '_id',
+      select: 'name brand price category image'
+    });
 
     res.json({
       success: true,
@@ -126,11 +163,18 @@ router.get('/owner', protect, authorize('owner', 'pharmacy', 'vendor', 'shop_own
           totalOrders,
           deliveredOrders,
           pendingOrders,
-          totalRevenue: totalRevenue[0]?.total || 0
+          inTransitOrders,
+          completedRevenue,
+          totalRevenue,
+          netProfit,
+          pendingProfit,
+          totalEstimatedProfit,
+          profitMargin: 20,
+          walletBalance
         },
         recentOrders,
         lowStockMedicines,
-        medicineStats
+        medicineStats: populatedMedStats
       }
     });
   } catch (error: any) {

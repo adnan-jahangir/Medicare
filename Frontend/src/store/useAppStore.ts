@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { SAMPLE_PICKUP, SAMPLE_DEST } from '@/lib/seed';
+import { DEFAULT_MEDICINES } from '@/lib/defaultMedicines';
 import type { CartItem, Medicine, Order, OrderStatus, Pharmacy, Role, User } from '@/lib/types';
 import { ORDER_STAGES } from '@/lib/types';
 
@@ -49,7 +50,7 @@ export const useAppStore = create<AppState>()(
       user: null,
       token: null,
       role: 'customer',
-      medicines: [],
+      medicines: DEFAULT_MEDICINES,
       pharmacies: [],
       orders: [],
       cart: [],
@@ -128,8 +129,21 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'medicare-store',
-      partialize: (s) => ({ cart: s.cart, wishlist: s.wishlist, googleMapsKey: s.googleMapsKey, user: s.user, role: s.role, token: s.token }),
+      partialize: (s) => ({
+        medicines: s.medicines,
+        cart: s.cart,
+        wishlist: s.wishlist,
+        googleMapsKey: s.googleMapsKey,
+        user: s.user,
+        role: s.role,
+        token: s.token,
+      }),
       onRehydrateStorage: () => (state) => {
+        // Fallback to default medicines catalog if cache is empty or corrupt
+        if (!state?.medicines || !Array.isArray(state.medicines) || state.medicines.length === 0) {
+          if (state) state.medicines = DEFAULT_MEDICINES;
+        }
+
         // Sanitize potentially corrupt persisted user data
         if (state?.user) {
           const u = state.user;

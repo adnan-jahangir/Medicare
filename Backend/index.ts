@@ -120,14 +120,22 @@ io.on("connection", (socket) => {
         return socket.emit('error_message', { message: 'Order not found' });
       }
 
-      // Customer check (allow any customer or viewer with the tracking link to join)
-      const isCustomer = true;
-      // Driver check (allow driver role to join order tracking room)
-      const isDriver = true;
-      // Admin/Owner check (includes all pharmacy owner role variants)
-      const isAdminOrOwner = true;
+      const userIdStr = user._id ? user._id.toString() : '';
+      const userEmail = (user.email || '').toLowerCase();
+      const customerEmail = (order.customerEmail || '').toLowerCase();
+      const assignedDriverId = order.driverId ? order.driverId.toString() : '';
+      const orderPharmId = order.pharmacyId ? order.pharmacyId.toString() : '';
 
-      if (isCustomer || isDriver || isAdminOrOwner) {
+      // Customer check: must be the customer who placed the order
+      const isCustomer = userEmail === customerEmail;
+      // Driver check: must be the assigned driver or order is ready for pickup
+      const isDriver = user.role === 'driver' && (assignedDriverId === userIdStr || !assignedDriverId || ['Ready', 'Preparing', 'Confirmed'].includes(order.status));
+      // Pharmacy Owner check: must belong to their pharmacy
+      const isOwner = ['owner', 'pharmacy', 'vendor', 'shop_owner'].includes(user.role) && user.shopCode === orderPharmId;
+      // Admin check: full platform oversight
+      const isAdmin = user.role === 'admin';
+
+      if (isCustomer || isDriver || isOwner || isAdmin) {
         socket.join(`room_${orderId}`);
         socket.join(`order:${orderId}`); // backward compatibility
         console.log(`[Socket Room Joined] User ${user.email} joined rooms for order ${orderId}`);
@@ -155,11 +163,13 @@ io.on("connection", (socket) => {
     socket.emit('joined_pharmacy_dashboard', { pharmacyId, success: true });
   });
 
-  // Backward compatibility room joins
+  // Backward compatibility room joins with role validation
   socket.on("driver:joinOrder", async ({ orderId }: { orderId: string }) => {
-    socket.join(`room_${orderId}`);
-    socket.join(`order:${orderId}`);
-    console.log(`[Socket Driver Joined] room_${orderId}`);
+    if (user.role === 'driver' || user.role === 'admin') {
+      socket.join(`room_${orderId}`);
+      socket.join(`order:${orderId}`);
+      console.log(`[Socket Driver Joined] room_${orderId}`);
+    }
   });
 
   socket.on("customer:watchOrder", async ({ orderId }: { orderId: string }) => {

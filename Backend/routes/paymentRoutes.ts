@@ -150,6 +150,23 @@ router.post('/initiate', protect, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Helper to sanitize frontend redirect URL and prevent Open Redirect attacks
+const sanitizeRedirectUrl = (rawUrl?: string): string => {
+  const defaultFrontend = process.env.FRONTEND_URL || 'http://localhost:5173';
+  if (!rawUrl) return defaultFrontend;
+  try {
+    const decoded = decodeURIComponent(rawUrl);
+    const parsed = new URL(decoded);
+    // Allow localhost or trusted medicare domains
+    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || parsed.hostname.includes('medicare') || parsed.hostname.includes('vercel.app')) {
+      return parsed.origin;
+    }
+    return defaultFrontend;
+  } catch {
+    return defaultFrontend;
+  }
+};
+
 // @route   ALL /api/payment/success
 // @desc    Webhook/Callback hit by Aamarpay on successful payment
 // @access  Public (Aamarpay callback)
@@ -157,26 +174,36 @@ router.all('/success', async (req: any, res: Response) => {
   try {
     const params = { ...req.query, ...req.body };
     const orderId = params.orderId || req.query.orderId;
-    const tranId = params.tranId || req.query.tranId;
-    const clientFrontend = params.fUrl ? decodeURIComponent(params.fUrl) : (process.env.FRONTEND_URL || 'http://localhost:5173');
+    const tranId = params.tran_id || params.tranId || req.query.tranId || params.mer_txnid;
+    const clientFrontend = sanitizeRedirectUrl(params.fUrl);
 
     console.log('[Aamarpay success callback]', { orderId, tranId, clientFrontend });
 
     if (orderId) {
       const order = await Order.findById(orderId);
       if (order) {
-        order.paymentStatus = 'Paid';
-        order.status = 'Confirmed';
-        await order.save();
-
-        // Reduce stock for items
-        for (const item of order.items) {
-          try {
-            await Medicine.findByIdAndUpdate(item.medicine, { $inc: { stock: -item.quantity } });
-          } catch (e) {}
+        // Verification: verify tranId matches to prevent unauthorized URL visiting
+        if (order.tranId && tranId && order.tranId !== tranId) {
+          console.warn(`[Payment Spoof Alert] Transaction ID mismatch for order ${orderId}: expected ${order.tranId}, got ${tranId}`);
+          return res.redirect(`${clientFrontend}/payment/fail?reason=invalid_transaction`);
         }
 
-        console.log(`[Order Paid Success] Order #${orderId} confirmed upon payment!`);
+        // Idempotency: only reduce stock and update status if not already Paid
+        if (order.paymentStatus !== 'Paid') {
+          order.paymentStatus = 'Paid';
+          order.status = 'Confirmed';
+          if (tranId) order.tranId = tranId;
+          await order.save();
+
+          // Reduce stock for items atomically
+          for (const item of order.items) {
+            try {
+              await Medicine.findByIdAndUpdate(item.medicine, { $inc: { stock: -item.quantity } });
+            } catch (e) {}
+          }
+
+          console.log(`[Order Paid Success] Order #${orderId} confirmed upon verified payment!`);
+        }
       }
     }
 
@@ -195,14 +222,14 @@ router.all('/fail', async (req: any, res: Response) => {
   try {
     const params = { ...req.query, ...req.body };
     const orderId = params.orderId || req.query.orderId;
-    const clientFrontend = params.fUrl ? decodeURIComponent(params.fUrl) : (process.env.FRONTEND_URL || 'http://localhost:5173');
+    const clientFrontend = sanitizeRedirectUrl(params.fUrl);
 
     if (orderId) {
       const order = await Order.findById(orderId);
       if (order && order.paymentStatus === 'Pending') {
-        // Remove unfulfilled pending order so it doesn't accumulate
-        await Order.findByIdAndDelete(orderId);
-        console.log(`[Payment Fail] Pending order #${orderId} deleted.`);
+        order.paymentStatus = 'Failed';
+        await order.save();
+        console.log(`[Payment Fail] Order #${orderId} marked as Failed.`);
       }
     }
 
@@ -221,14 +248,15 @@ router.all('/cancel', async (req: any, res: Response) => {
   try {
     const params = { ...req.query, ...req.body };
     const orderId = params.orderId || req.query.orderId;
-    const clientFrontend = params.fUrl ? decodeURIComponent(params.fUrl) : (process.env.FRONTEND_URL || 'http://localhost:5173');
+    const clientFrontend = sanitizeRedirectUrl(params.fUrl);
 
     if (orderId) {
       const order = await Order.findById(orderId);
       if (order && order.paymentStatus === 'Pending') {
-        // Remove cancelled pending order so it doesn't accumulate
-        await Order.findByIdAndDelete(orderId);
-        console.log(`[Payment Cancelled] Pending order #${orderId} deleted.`);
+        order.paymentStatus = 'Failed';
+        order.status = 'Cancelled';
+        await order.save();
+        console.log(`[Payment Cancelled] Order #${orderId} marked as Cancelled.`);
       }
     }
 

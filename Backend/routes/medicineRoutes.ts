@@ -4,11 +4,34 @@ import { protect, authorize, AuthRequest } from "../middleware/auth.js";
 
 const router = express.Router();
 
+// Fast In-Memory Cache for GET /api/medicines
+interface CacheEntry {
+  data: any;
+  expiresAt: number;
+}
+const medicineCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+export const clearMedicineCache = () => {
+  medicineCache.clear();
+};
+
 // @route   GET /api/medicines
 // @desc    Get all medicines (Optional filter by ?pharmacyId=..., ?category=..., ?search=...)
 // @access  Public
 router.get("/", async (req: AuthRequest, res: Response) => {
   try {
+    // Enable browser and CDN caching with Stale-While-Revalidate
+    res.setHeader(
+      "Cache-Control",
+      "public, max-age=60, s-maxage=300, stale-while-revalidate=86400"
+    );
+
+    const cacheKey = JSON.stringify(req.query);
+    const cached = medicineCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return res.json(cached.data);
+    }
     const {
       pharmacyId,
       category,
@@ -34,13 +57,16 @@ router.get("/", async (req: AuthRequest, res: Response) => {
       if (maxPrice) query.price.$lte = parseFloat(maxPrice as string);
     }
 
-    // Search by name, brand, or description
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { brand: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
-      ];
+    // Search by name, brand, or description (ReDoS Sanitization)
+    if (search && typeof search === 'string') {
+      const sanitized = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (sanitized) {
+        query.$or = [
+          { name: { $regex: sanitized, $options: "i" } },
+          { brand: { $regex: sanitized, $options: "i" } },
+          { description: { $regex: sanitized, $options: "i" } },
+        ];
+      }
     }
 
     let queryBuilder = Medicine.find(query).populate(
@@ -60,6 +86,11 @@ router.get("/", async (req: AuthRequest, res: Response) => {
     }
 
     const medicines = await queryBuilder;
+
+    medicineCache.set(cacheKey, {
+      data: medicines,
+      expiresAt: Date.now() + CACHE_TTL_MS,
+    });
 
     res.json(medicines);
   } catch (error: any) {
@@ -113,18 +144,27 @@ router.post(
         pharmacyId,
       } = req.body;
 
-      if (!name || !price || !pharmacyId) {
+      if (!name || !price) {
         return res
           .status(400)
-          .json({ message: "Name, price, and pharmacyId are required" });
+          .json({ message: "Name and price are required" });
       }
 
       if (price < 0) {
         return res.status(400).json({ message: "Price cannot be negative" });
       }
 
+      // IDOR check: non-admins can only add medicines to their own pharmacy
+      let targetPharmacyId = pharmacyId;
+      if (req.user.role !== 'admin') {
+        if (!req.user.shopCode) {
+          return res.status(403).json({ message: "User is not linked to an active pharmacy" });
+        }
+        targetPharmacyId = req.user.shopCode;
+      }
+
       const medicine = new Medicine({
-        pharmacyId,
+        pharmacyId: targetPharmacyId,
         name,
         brand,
         strength,
@@ -141,6 +181,8 @@ router.post(
       const populatedMedicine = await Medicine.findById(
         savedMedicine._id,
       ).populate("pharmacyId", "name city");
+
+      clearMedicineCache();
 
       res.status(201).json({
         success: true,
@@ -215,6 +257,8 @@ router.post(
         inserted.push(med);
       }
 
+      clearMedicineCache();
+
       res.status(201).json({ success: true, insertedCount: inserted.length, skippedCount: skipped.length, skipped, inserted });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -237,13 +281,27 @@ router.patch(
         return res.status(404).json({ message: "Medicine not found" });
       }
 
-      // Optionally check if shop owner actually owns this pharmacy here...
+      // IDOR Check: Ensure pharmacy owner actually owns this pharmacy
+      if (req.user.role !== 'admin') {
+        const medPharmId = medicine.pharmacyId?._id?.toString() || medicine.pharmacyId?.toString();
+        if (!req.user.shopCode || medPharmId !== req.user.shopCode.toString()) {
+          return res.status(403).json({ message: "Not authorized to update medicines from another pharmacy" });
+        }
+      }
+
+      // Disallow tampering with pharmacyId
+      const updatePayload = { ...req.body };
+      if (req.user.role !== 'admin') {
+        delete updatePayload.pharmacyId;
+      }
 
       const updatedMedicine = await Medicine.findByIdAndUpdate(
         req.params.id,
-        { $set: req.body },
+        { $set: updatePayload },
         { new: true, runValidators: true }, // new: returns updated doc, runValidators ensures data matches schema
       );
+
+      clearMedicineCache();
 
       res.json({
         success: true,
@@ -271,7 +329,16 @@ router.delete(
         return res.status(404).json({ message: "Medicine not found" });
       }
 
+      // IDOR Check: Ensure pharmacy owner actually owns this pharmacy
+      if (req.user.role !== 'admin') {
+        const medPharmId = medicine.pharmacyId?._id?.toString() || medicine.pharmacyId?.toString();
+        if (!req.user.shopCode || medPharmId !== req.user.shopCode.toString()) {
+          return res.status(403).json({ message: "Not authorized to delete medicines from another pharmacy" });
+        }
+      }
+
       await Medicine.findByIdAndDelete(req.params.id);
+      clearMedicineCache();
       res.json({
         success: true,
         message: "Medicine removed successfully",

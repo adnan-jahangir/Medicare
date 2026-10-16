@@ -1,0 +1,266 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 340" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0f1d" />
+      <stop offset="50%" stop-color="#0d1527" />
+      <stop offset="100%" stop-color="#070c18" />
+    </linearGradient>
+
+    <!-- Card Gradients -->
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.75" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.85" />
+    </linearGradient>
+
+    <!-- Role Gradients -->
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#60a5fa" />
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#a78bfa" />
+    </linearGradient>
+    <linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#22d3ee" />
+    </linearGradient>
+    <linearGradient id="amberGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#fbbf24" />
+    </linearGradient>
+    <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#34d399" />
+    </linearGradient>
+
+    <!-- Drop Shadows -->
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="125%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.45" />
+    </filter>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <style>
+    .title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 20px; font-weight: 800; fill: #ffffff; letter-spacing: -0.3px; }
+    .subtitle { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 13px; font-weight: 500; fill: #94a3b8; }
+    .badge { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; }
+    .card-title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14.5px; font-weight: 700; fill: #f8fafc; }
+    .card-text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 11.5px; font-weight: 400; fill: #cbd5e1; }
+    .event-badge { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 9.5px; font-weight: 700; }
+    .arrow-text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 9px; font-weight: 600; fill: #64748b; }
+  </style>
+
+  <!-- Canvas Background -->
+  <rect width="1200" height="340" rx="16" fill="url(#bgGrad)" stroke="#1e293b" stroke-width="1.5" />
+
+  <!-- Background Decorative Grid Lines -->
+  <path d="M 0 55 L 1200 55" stroke="#1e293b" stroke-width="1" stroke-opacity="0.4" />
+  <path d="M 0 295 L 1200 295" stroke="#1e293b" stroke-width="1" stroke-opacity="0.4" />
+
+  <!-- Header -->
+  <g transform="translate(36, 36)">
+    <!-- MedeCare Brand Icon -->
+    <rect x="0" y="-18" width="26" height="26" rx="6" fill="#10b981" />
+    <path d="M 6 -5 L 13 2 L 20 -5 M 13 2 L 13 -13" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+    <text x="36" y="0" class="title">MedeCare Real-Time Operational Workflow</text>
+    <text x="445" y="0" class="subtitle">• Synchronized Customer, Pharmacy &amp; Driver State Machine</text>
+  </g>
+
+  <!-- ==================== CARD 1: CUSTOMER ==================== -->
+  <g transform="translate(36, 75)" filter="url(#shadow)">
+    <!-- Card Base -->
+    <rect width="202" height="225" rx="12" fill="url(#cardGrad)" stroke="#3b82f6" stroke-width="1.2" stroke-opacity="0.8" />
+    <!-- Header Accent Bar -->
+    <path d="M 0 12 Q 0 0 12 0 L 190 0 Q 202 0 202 12 L 202 44 L 0 44 Z" fill="#1e3a8a" fill-opacity="0.4" />
+    <!-- Role Pill -->
+    <rect x="14" y="10" width="76" height="18" rx="9" fill="#3b82f6" />
+    <text x="52" y="22.5" class="badge" fill="#ffffff" text-anchor="middle">CUSTOMER</text>
+    <circle cx="180" cy="19" r="4" fill="#60a5fa" />
+
+    <!-- Card Content -->
+    <text x="14" y="66" class="card-title">1. Order Placement</text>
+    
+    <g transform="translate(14, 85)">
+      <circle cx="4" cy="4" r="2.5" fill="#3b82f6" />
+      <text x="14" y="7" class="card-text">Search 1000+ Medicines</text>
+      
+      <circle cx="4" cy="24" r="2.5" fill="#3b82f6" />
+      <text x="14" y="27" class="card-text">Upload Prescription (Rx)</text>
+      
+      <circle cx="4" cy="44" r="2.5" fill="#3b82f6" />
+      <text x="14" y="47" class="card-text">Chittagong GPS Pinpoint</text>
+      
+      <circle cx="4" cy="64" r="2.5" fill="#3b82f6" />
+      <text x="14" y="67" class="card-text">COD or SSLCommerz</text>
+    </g>
+
+    <!-- Footer Event Pill -->
+    <rect x="14" y="180" width="174" height="26" rx="6" fill="#1e293b" stroke="#3b82f6" stroke-width="1" stroke-opacity="0.6" />
+    <text x="101" y="196.5" class="event-badge" fill="#93c5fd" text-anchor="middle">⚡ EMIT: order:newOrder</text>
+  </g>
+
+  <!-- Connector 1 -> 2 -->
+  <g transform="translate(238, 172)">
+    <line x1="4" y1="15" x2="34" y2="15" stroke="#3b82f6" stroke-width="2" stroke-dasharray="3,3" />
+    <polygon points="36,15 30,11 30,19" fill="#3b82f6" />
+    <text x="20" y="6" class="arrow-text" text-anchor="middle">SOCKET.IO</text>
+  </g>
+
+  <!-- ==================== CARD 2: PHARMACY ==================== -->
+  <g transform="translate(276, 75)" filter="url(#shadow)">
+    <!-- Card Base -->
+    <rect width="202" height="225" rx="12" fill="url(#cardGrad)" stroke="#8b5cf6" stroke-width="1.2" stroke-opacity="0.8" />
+    <!-- Header Accent Bar -->
+    <path d="M 0 12 Q 0 0 12 0 L 190 0 Q 202 0 202 12 L 202 44 L 0 44 Z" fill="#581c87" fill-opacity="0.35" />
+    <!-- Role Pill -->
+    <rect x="14" y="10" width="80" height="18" rx="9" fill="#8b5cf6" />
+    <text x="54" y="22.5" class="badge" fill="#ffffff" text-anchor="middle">PHARMACY</text>
+    <circle cx="180" cy="19" r="4" fill="#a78bfa" />
+
+    <!-- Card Content -->
+    <text x="14" y="66" class="card-title">2. Lab &amp; Packaging</text>
+    
+    <g transform="translate(14, 85)">
+      <circle cx="4" cy="4" r="2.5" fill="#8b5cf6" />
+      <text x="14" y="7" class="card-text">Lands in "New Orders"</text>
+      
+      <circle cx="4" cy="24" r="2.5" fill="#8b5cf6" />
+      <text x="14" y="27" class="card-text">Pharmacist 1-Tap Accept</text>
+      
+      <circle cx="4" cy="44" r="2.5" fill="#8b5cf6" />
+      <text x="14" y="47" class="card-text">Batch Stock Auto-Deduct</text>
+      
+      <circle cx="4" cy="64" r="2.5" fill="#8b5cf6" />
+      <text x="14" y="67" class="card-text">Status: Ready for Courier</text>
+    </g>
+
+    <!-- Footer Event Pill -->
+    <rect x="14" y="180" width="174" height="26" rx="6" fill="#1e293b" stroke="#8b5cf6" stroke-width="1" stroke-opacity="0.6" />
+    <text x="101" y="196.5" class="event-badge" fill="#d8b4fe" text-anchor="middle">📡 BROADCAST: available</text>
+  </g>
+
+  <!-- Connector 2 -> 3 -->
+  <g transform="translate(478, 172)">
+    <line x1="4" y1="15" x2="34" y2="15" stroke="#8b5cf6" stroke-width="2" stroke-dasharray="3,3" />
+    <polygon points="36,15 30,11 30,19" fill="#8b5cf6" />
+    <text x="20" y="6" class="arrow-text" text-anchor="middle">DISPATCH</text>
+  </g>
+
+  <!-- ==================== CARD 3: DRIVER ==================== -->
+  <g transform="translate(516, 75)" filter="url(#shadow)">
+    <!-- Card Base -->
+    <rect width="202" height="225" rx="12" fill="url(#cardGrad)" stroke="#06b6d4" stroke-width="1.2" stroke-opacity="0.8" />
+    <!-- Header Accent Bar -->
+    <path d="M 0 12 Q 0 0 12 0 L 190 0 Q 202 0 202 12 L 202 44 L 0 44 Z" fill="#164e63" fill-opacity="0.35" />
+    <!-- Role Pill -->
+    <rect x="14" y="10" width="70" height="18" rx="9" fill="#06b6d4" />
+    <text x="49" y="22.5" class="badge" fill="#ffffff" text-anchor="middle">COURIER</text>
+    <circle cx="180" cy="19" r="4" fill="#22d3ee" />
+
+    <!-- Card Content -->
+    <text x="14" y="66" class="card-title">3. Live GPS Transit</text>
+    
+    <g transform="translate(14, 85)">
+      <circle cx="4" cy="4" r="2.5" fill="#06b6d4" />
+      <text x="14" y="7" class="card-text">Driver Accepts Order</text>
+      
+      <circle cx="4" cy="24" r="2.5" fill="#06b6d4" />
+      <text x="14" y="27" class="card-text">Pickup at Pharmacy</text>
+      
+      <circle cx="4" cy="44" r="2.5" fill="#06b6d4" />
+      <text x="14" y="47" class="card-text">Leaflet + Chittagong OSRM</text>
+      
+      <circle cx="4" cy="64" r="2.5" fill="#06b6d4" />
+      <text x="14" y="67" class="card-text">Live Socket Coordinate Stream</text>
+    </g>
+
+    <!-- Footer Event Pill -->
+    <rect x="14" y="180" width="174" height="26" rx="6" fill="#1e293b" stroke="#06b6d4" stroke-width="1" stroke-opacity="0.6" />
+    <text x="101" y="196.5" class="event-badge" fill="#67e8f9" text-anchor="middle">📍 PROXIMITY: &lt; 300m</text>
+  </g>
+
+  <!-- Connector 3 -> 4 -->
+  <g transform="translate(718, 172)">
+    <line x1="4" y1="15" x2="34" y2="15" stroke="#06b6d4" stroke-width="2" stroke-dasharray="3,3" />
+    <polygon points="36,15 30,11 30,19" fill="#06b6d4" />
+    <text x="20" y="6" class="arrow-text" text-anchor="middle">ARRIVAL</text>
+  </g>
+
+  <!-- ==================== CARD 4: OTP VERIFICATION ==================== -->
+  <g transform="translate(756, 75)" filter="url(#shadow)">
+    <!-- Card Base -->
+    <rect width="202" height="225" rx="12" fill="url(#cardGrad)" stroke="#f59e0b" stroke-width="1.2" stroke-opacity="0.8" />
+    <!-- Header Accent Bar -->
+    <path d="M 0 12 Q 0 0 12 0 L 190 0 Q 202 0 202 12 L 202 44 L 0 44 Z" fill="#78350f" fill-opacity="0.35" />
+    <!-- Role Pill -->
+    <rect x="14" y="10" width="90" height="18" rx="9" fill="#f59e0b" />
+    <text x="59" y="22.5" class="badge" fill="#ffffff" text-anchor="middle">HANDSHAKE</text>
+    <circle cx="180" cy="19" r="4" fill="#fbbf24" />
+
+    <!-- Card Content -->
+    <text x="14" y="66" class="card-title">4. OTP Verification</text>
+    
+    <g transform="translate(14, 85)">
+      <circle cx="4" cy="4" r="2.5" fill="#f59e0b" />
+      <text x="14" y="7" class="card-text">Doorstep Proximity Locked</text>
+      
+      <circle cx="4" cy="24" r="2.5" fill="#f59e0b" />
+      <text x="14" y="27" class="card-text">Customer shares 4-Digit OTP</text>
+      
+      <circle cx="4" cy="44" r="2.5" fill="#f59e0b" />
+      <text x="14" y="47" class="card-text">Driver Inputs into App</text>
+      
+      <circle cx="4" cy="64" r="2.5" fill="#f59e0b" />
+      <text x="14" y="67" class="card-text">Zero Fraud Handover</text>
+    </g>
+
+    <!-- Footer Event Pill -->
+    <rect x="14" y="180" width="174" height="26" rx="6" fill="#1e293b" stroke="#f59e0b" stroke-width="1" stroke-opacity="0.6" />
+    <text x="101" y="196.5" class="event-badge" fill="#fde68a" text-anchor="middle">🔒 SECURE: verifyOtp</text>
+  </g>
+
+  <!-- Connector 4 -> 5 -->
+  <g transform="translate(958, 172)">
+    <line x1="4" y1="15" x2="34" y2="15" stroke="#f59e0b" stroke-width="2" stroke-dasharray="3,3" />
+    <polygon points="36,15 30,11 30,19" fill="#f59e0b" />
+    <text x="20" y="6" class="arrow-text" text-anchor="middle">VERIFIED</text>
+  </g>
+
+  <!-- ==================== CARD 5: SETTLEMENT ==================== -->
+  <g transform="translate(996, 75)" filter="url(#shadow)">
+    <!-- Card Base -->
+    <rect width="168" height="225" rx="12" fill="url(#cardGrad)" stroke="#10b981" stroke-width="1.2" stroke-opacity="0.8" />
+    <!-- Header Accent Bar -->
+    <path d="M 0 12 Q 0 0 12 0 L 156 0 Q 168 0 168 12 L 168 44 L 0 44 Z" fill="#064e3b" fill-opacity="0.4" />
+    <!-- Role Pill -->
+    <rect x="14" y="10" width="85" height="18" rx="9" fill="#10b981" />
+    <text x="56.5" y="22.5" class="badge" fill="#ffffff" text-anchor="middle">SETTLEMENT</text>
+    <circle cx="150" cy="19" r="4" fill="#34d399" />
+
+    <!-- Card Content -->
+    <text x="14" y="66" class="card-title">5. Instant Payout</text>
+    
+    <g transform="translate(14, 85)">
+      <circle cx="4" cy="4" r="2.5" fill="#10b981" />
+      <text x="14" y="7" class="card-text">Driver: +৳35 Payout</text>
+      
+      <circle cx="4" cy="24" r="2.5" fill="#10b981" />
+      <text x="14" y="27" class="card-text">Owner: +20% Profit</text>
+      
+      <circle cx="4" cy="44" r="2.5" fill="#10b981" />
+      <text x="14" y="47" class="card-text">Customer Confirmed</text>
+      
+      <circle cx="4" cy="64" r="2.5" fill="#10b981" />
+      <text x="14" y="67" class="card-text">Order Auto-Archived</text>
+    </g>
+
+    <!-- Footer Event Pill -->
+    <rect x="14" y="180" width="140" height="26" rx="6" fill="#1e293b" stroke="#10b981" stroke-width="1" stroke-opacity="0.6" />
+    <text x="84" y="196.5" class="event-badge" fill="#6ee7b7" text-anchor="middle">🎉 COMPLETED</text>
+  </g>
+</svg>

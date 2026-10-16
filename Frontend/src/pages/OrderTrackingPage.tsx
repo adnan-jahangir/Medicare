@@ -19,6 +19,9 @@ const LiveOrderMap = lazy(() =>
   import('@/components/LiveOrderMap').then((m) => ({ default: m.LiveOrderMap }))
 );
 
+import { parseChittagongCoords } from '@/lib/chittagongMap';
+import { MiniDeliveryMap } from '@/components/MiniDeliveryMap';
+
 export default function OrderTrackingPage() {
   const { id } = useParams();
   const { orders, updateOrderStatus } = useAppStore();
@@ -32,37 +35,15 @@ export default function OrderTrackingPage() {
   const localOrder = orders.find((o) => o.id === id || (o as any)._id === id);
   const order = orderDetails || localOrder || null;
 
-  // Normalize coords helper
-  const getCoords = (c: any): { lat: number; lng: number } => {
-    if (Array.isArray(c)) {
-      return {
-        lng: typeof c[0] === 'number' ? c[0] : 0,
-        lat: typeof c[1] === 'number' ? c[1] : 0,
-      };
-    }
-    if (c && typeof c === 'object') {
-      return {
-        lat: typeof c.lat === 'number' ? c.lat : 0,
-        lng: typeof c.lng === 'number' ? c.lng : 0,
-      };
-    }
-    return { lat: 0, lng: 0 };
-  };
-
   const getDeliveryCoords = (o: any): { lat: number; lng: number } => {
-    if (o?.deliveryAddress) {
-      const coords = getCoords(o.deliveryAddress);
-      if (coords.lat !== 0 || coords.lng !== 0) return coords;
-    }
-    const dest = getCoords(o?.destination);
-    if (dest.lat !== 0 || dest.lng !== 0) return dest;
-    return { lat: 22.3680, lng: 91.8020 }; // Customer fallback coords
+    const raw = o?.deliveryAddress || o?.destination;
+    const [lat, lng] = parseChittagongCoords(raw);
+    return { lat, lng };
   };
 
   const getPickupCoords = (o: any): { lat: number; lng: number } => {
-    const pickup = getCoords(o?.pickup);
-    if (pickup.lat !== 0 || pickup.lng !== 0) return pickup;
-    return { lat: 22.3568, lng: 91.7832 }; // Pharmacy fallback coords
+    const [lat, lng] = parseChittagongCoords(o?.pickup);
+    return { lat, lng };
   };
 
   // Fetch full order details from backend
@@ -257,63 +238,18 @@ export default function OrderTrackingPage() {
             </div>
           )}
 
-          {/* Driver Card */}
-          {order.driverId && typeof order.driverId === 'object' &&
-            ['Driver Assigned', 'Picked Up', 'On the Way', 'Arrived', 'Delivered', 'Completed'].includes(
-              order.status
-            ) && (
-              <div className="mt-8 p-5 rounded-2xl border border-border bg-card shadow-sm animate-in fade-in slide-in-from-bottom-4">
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-14 w-14 border-2 border-primary/10">
-                    <AvatarImage src={order.driverId.profilePhoto} />
-                    <AvatarFallback className="bg-primary/5 text-primary text-lg">
-                      {(order.driverId.name || 'D').charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <h4 className="font-display font-bold text-lg leading-tight">
-                      {order.driverId.name || 'Assigned Courier'}
-                    </h4>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="flex items-center gap-1 text-xs font-semibold text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full">
-                        <Star className="h-3 w-3 fill-current" />
-                        {order.driverId.rating || '5.0'}
-                      </div>
-                      <span className="text-muted-foreground text-xs">• Verified Courier</span>
-                    </div>
-                  </div>
-                  {order.driverId.phoneNumber && (
-                    <Button asChild size="icon" className="rounded-full h-12 w-12 shadow-md">
-                      <a href={`tel:${order.driverId.phoneNumber}`}>
-                        <Phone className="h-5 w-5" />
-                      </a>
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
         </div>
 
         <div className="flex flex-col gap-6">
-          {/* Delivery Address Section */}
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm overflow-hidden">
-            <h3 className="font-display font-semibold mb-4 flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-primary" /> Delivery Address
-            </h3>
-            <div className="relative h-32 w-full rounded-xl overflow-hidden mb-4 bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-purple-500/10 flex items-center justify-center border border-border/50">
-              <div className="absolute inset-0 opacity-25" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, #10b981 1.5px, transparent 1.5px)', backgroundSize: '16px 16px' }} />
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-background/90 backdrop-blur border border-border shadow-sm text-xs font-bold text-foreground z-10">
-                <MapPin className="h-4 w-4 text-purple-600 animate-bounce" />
-                <span>Customer Delivery Location</span>
-              </div>
-            </div>
-            <div className="text-sm font-medium">Home</div>
-            <div className="text-sm text-muted-foreground mt-1">
-              123 Healthcare Avenue, Medical District
-              <br />
-              Central City, 10001
-            </div>
-          </div>
+          {/* Real Customer Delivery Location Mini Map with Driver Details */}
+          <MiniDeliveryMap
+            coords={deliveryCoords}
+            address={order.address || (order as any).customerAddress}
+            customerName={order.customerName}
+            customerPhone={order.customerPhone}
+            driver={order.driverId}
+            orderStatus={order.status}
+          />
 
           {/* Collapsible Order Summary */}
           <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">

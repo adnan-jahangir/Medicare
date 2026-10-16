@@ -157,7 +157,9 @@
 /* Hide Leaflet's default icon overrides for our custom divIcons */
 .live-order-pharmacy-icon,
 .live-order-home-icon,
-.live-order-driver-icon {
+.live-order-driver-icon,
+.checkout-delivery-pin,
+.mini-delivery-pin {
   background: transparent !important;
   border: none !important;
 }
